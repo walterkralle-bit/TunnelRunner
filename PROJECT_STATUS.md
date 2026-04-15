@@ -45,6 +45,9 @@
 - Kürzerer, knackigerer Sprung
 - Leicht trägeres, kontrollierteres Steering
 - Coins etwas ruhiger zwischen Hindernisphasen
+- Zweite Gameplay-Pass-Änderung auf Hindernis-Rhythmus
+- Weniger zufällige Spawnfolge, mehr wiedererkennbare Druck-/Ruhephasen
+- Coins stärker entlang sinnvoller Fahrlinien
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

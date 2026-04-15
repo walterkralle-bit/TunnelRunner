@@ -94,6 +94,7 @@ let pAng=Math.PI/2,jumping=false,jf=0,wspin=0;
 let sAng=Math.PI/2,drag=false;
 let obs=[],cns=[],parts=[];
 let spT=0,cnT=0;
+let spawnPhase=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -299,18 +300,43 @@ let lastCoinSpawnZ=0;
 
 function spawnGroup(){
   const diff=Math.min(1,dist/5000);
-  const r=Math.random();
-  if(r<.3+diff*.1){
-    const blocked=spawnBlockSet(diff);
-    if(Math.random()<.5)spawnCoinsInGap(blocked);
-  } else if(r<.5+diff*.05){
-    spawnRingObs();
-  } else if(r<.7+diff*.1){
-    spawnComboRing(diff);
-  } else {
-    const blocked=spawnBlockSet(diff);
-    if(Math.random()<.4)spawnCoinsInGap(blocked);
+  const phase=spawnPhase%6;
+  spawnPhase++;
+
+  if(phase===0){
+    const blocked=spawnBlockSet(diff*.85);
+    if(Math.random()<.75)spawnCoinsInGap(blocked);
+    return;
   }
+  if(phase===1){
+    if(Math.random()<.65){
+      spawnRingObs();
+    } else {
+      const blocked=spawnBlockSet(diff*.9);
+      if(Math.random()<.5)spawnCoinsInGap(blocked);
+    }
+    return;
+  }
+  if(phase===2){
+    const blocked=spawnBlockSet(diff);
+    if(Math.random()<.35)spawnCoinsInGap(blocked);
+    return;
+  }
+  if(phase===3){
+    if(diff>.22){
+      spawnComboRing(diff);
+    } else {
+      spawnRingObs();
+    }
+    return;
+  }
+  if(phase===4){
+    if(Math.random()<.7)spawnCoins();
+    return;
+  }
+
+  const blocked=spawnBlockSet(diff*.95);
+  if(Math.random()<.55)spawnCoinsInGap(blocked);
 }
 
 function spawnBlockSet(diff){
@@ -401,10 +427,10 @@ function spawnCoins(){
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
   if(activeCoinCount>2||obs.filter(o=>o.z<.42).length>2)return;
   
-  const base=Math.random()*Math.PI*2;
-  const n=4+Math.floor(Math.random()*4);
+  const base=pAng+(Math.random()-.5)*.7;
+  const n=4+Math.floor(Math.random()*3);
   const spiralDir=Math.random()<.5?1:-1;
-  const angStep=.15*spiralDir;
+  const angStep=.11*spiralDir;
   for(let i=0;i<n;i++){
     cns.push({angle:base+angStep*i,z:-.025*i,collected:false});
   }
@@ -438,7 +464,7 @@ function spawnCoinsInGap(blockedSectors){
   const gapCenter=(bestStart+bestLen/2)*SECTOR_SIZE+SECTOR_SIZE/2;
   
   // Place 3-5 coins in a straight line along the gap, evenly spaced in depth
-  const n=2+Math.floor(Math.random()*2); // 2-3 coins in gap
+  const n=3; // cleaner reward line in the safe gap
   for(let i=0;i<n;i++){
     cns.push({
       angle:gapCenter, // all at the same angle = neat line
@@ -523,7 +549,7 @@ document.getElementById('go').addEventListener('click',startGame);
 function startGame(){
   run=true;over=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
-  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
   ov.classList.add('hidden');updHUD();
