@@ -837,8 +837,8 @@ function drawSingleObs(o){
     // Blue jumpable segment — keep thickness, shift outward so its outer edge matches brown
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
     const blueThickness=thickness*.72;
-    const blueInner=rf+thickness*.42;
-    const blueOuter=blueInner+blueThickness;
+    const blueOuter=rb;
+    const blueInner=rb-blueThickness;
     const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
     // Back / inner face
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
