@@ -48,6 +48,8 @@
 - Zweite Gameplay-Pass-Änderung auf Hindernis-Rhythmus
 - Weniger zufällige Spawnfolge, mehr wiedererkennbare Druck-/Ruhephasen
 - Coins stärker entlang sinnvoller Fahrlinien
+- Dritte Gameplay-Pass-Änderung: Ruhephasen mit geführten Coin-Routen durch größere Tunnelbewegungen
+- Kleine Hindernisse können diese Coin-Linien zusätzlich interessanter machen
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

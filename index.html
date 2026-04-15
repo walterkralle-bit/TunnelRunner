@@ -331,7 +331,11 @@ function spawnGroup(){
     return;
   }
   if(phase===4){
-    if(Math.random()<.7)spawnCoins();
+    if(Math.random()<.85)spawnCoins();
+    if(Math.random()<.6){
+      const diffSmall=Math.max(.12,diff*.6);
+      spawnBlockSet(diffSmall);
+    }
     return;
   }
 
@@ -426,13 +430,19 @@ function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
   if(activeCoinCount>2||obs.filter(o=>o.z<.42).length>2)return;
-  
-  const base=pAng+(Math.random()-.5)*.7;
-  const n=4+Math.floor(Math.random()*3);
-  const spiralDir=Math.random()<.5?1:-1;
-  const angStep=.11*spiralDir;
+
+  // Guided coin route: encourage a meaningful drive line through the whole tunnel
+  const start=pAng+(Math.random()<.5?-1:1)*(.35+Math.random()*.25);
+  const turns=1.2+Math.random()*.8;
+  const dir=Math.random()<.5?1:-1;
+  const n=10;
   for(let i=0;i<n;i++){
-    cns.push({angle:base+angStep*i,z:-.025*i,collected:false});
+    const t=i/(n-1);
+    cns.push({
+      angle:start+dir*(turns*Math.PI*2)*t,
+      z:-.015-.05*i,
+      collected:false
+    });
   }
 }
 
