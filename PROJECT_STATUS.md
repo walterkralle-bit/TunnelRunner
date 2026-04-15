@@ -63,6 +63,7 @@
 - Coin-Spiralen werden stärker an sichere Fahrbahnen gebunden statt frei durch problematische Hindernisgeometrie zu laufen
 - Blue Jump-Segmente sollen über gleiche Unterkante statt gleiche Oberkante mit Brown-Walls lesbarer werden, damit sie niedriger und überspringbar wirken
 - Sichtbare Nähte zwischen zusammenhängenden Brown-Segmenten werden weiter reduziert
+- Screenshot-getriebenes Feintuning an Combo-Geometrie und Segmenthöhen läuft
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

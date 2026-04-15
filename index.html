@@ -807,16 +807,19 @@ function drawSingleObs(o){
     cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
     
     // Layer 5: SIDE WALLS (visible edges of the block)
-    for(const edgeA of[sa,ea]){
-      const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
-      const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
-      // Dark side fill
-      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
-      cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
-      // Bright edge highlight at front corner
-      const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
-      cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
-      cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
+    if((o.sectors?.length||1)===1){
+      for(const edgeA of[sa,ea]){
+        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+        // Dark side fill
+        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+        // Bright edge highlight at front corner
+        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
+        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
+        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+      }
     }
     
     // Layer 6: Surface detail lines for panel look
@@ -834,8 +837,8 @@ function drawSingleObs(o){
     // Blue jumpable segment — same outer/lower edge as brown, but lower top toward tunnel center
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
     const blueOuter=rb;
-    const blueInner=rb-thickness*.72;
-    const t1=rb-thickness*.28, t2=rb-thickness*.5;
+    const blueInner=rb-thickness*.56;
+    const t1=rb-thickness*.18, t2=rb-thickness*.36;
     // Back / inner face
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
@@ -847,11 +850,11 @@ function drawSingleObs(o){
     cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
     cx.fillStyle='#055868';cx.fill();
     // Outer/front edge aligned with brown underside
-    cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.003,ea+.003);
-    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
+    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
     // Inner/top edge set lower than brown
-    cx.beginPath();cx.arc(CX,CY,blueInner,sa+.002,ea-.002);
-    cx.strokeStyle='#033848';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
+    cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
     // Sides
     for(const edgeA of[sa,ea]){
       cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
