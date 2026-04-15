@@ -52,6 +52,7 @@
 - Danach vereinfacht: Coin-Spiral-Phasen sollen klar lesbar sein, ohne konkurrierende Coin-Linien oder harte Hindernisse
 - Coin-Collection wurde enger gezogen, um Fehl-Einsammeln rund um Sprünge zu reduzieren
 - Coin-Spiralen wurden flacher und länger gemacht, damit sie klarer lesbar und besser fahrbar sind
+- Coin-Collect-Logik wurde weiter verschärft, damit Spiral-Münzen nicht kettenartig falsch eingesammelt werden
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel
