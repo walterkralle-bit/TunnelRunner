@@ -56,6 +56,8 @@
 - Brown-Block-Gruppen werden jetzt konsequenter als zusammenhängende Wandsegmente gespawnt, auch in Combo-Situationen
 - Coin-Spiral-Phasen werden stärker von Hindernisdruck freigehalten
 - Spiral-Phasen sollen exklusiver sein, ohne konkurrierende Coin-Sequenzen mitten in der Route
+- Brown/Blue-Combo-Geometrie wird schrittweise bündiger gemacht, damit zwischen Segmenten keine sichtbaren Lücken entstehen
+- Coin-Spiralen werden stärker an sichere Fahrbahnen gebunden statt frei durch problematische Hindernisgeometrie zu laufen
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

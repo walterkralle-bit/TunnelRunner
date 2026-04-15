@@ -375,7 +375,7 @@ function pushMergedBlocks(sectors, depth=.08){
     const start=group[0];
     const end=group[group.length-1];
     const center=((start+end+1)/2)*SECTOR_SIZE;
-    const arc=group.length*SECTOR_SIZE*.92;
+    const arc=group.length*SECTOR_SIZE;
     obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
   }
 }
@@ -390,7 +390,7 @@ function spawnComboRing(diff){
   for(let i=0;i<SECTORS;i++){
     const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
     if(blue.includes(i)){
-      obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE*.92,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
+      obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
     } else {
       brown.push(i);
     }
@@ -450,22 +450,25 @@ function updateObs(dt){
 function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>0||obs.filter(o=>o.z<.75).length>0||coinModeTimer>0)return;
+  if(activeCoinCount>0||obs.filter(o=>o.z<.9).length>0||coinModeTimer>0)return;
 
-  // Clear coin spiral: this phase should teach one obvious line through the tunnel
-  const start=pAng+(Math.random()<.5?-1:1)*(.08+Math.random()*.05);
-  const turns=.42+Math.random()*.12;
+  // Clear coin spiral: keep it entirely in a safe lane with no obstacle intersections
+  const safeSector=getSector(pAng);
+  const safeAngle=safeSector*SECTOR_SIZE+SECTOR_SIZE/2;
+  const start=safeAngle+(Math.random()<.5?-1:1)*.04;
+  const turns=.34+Math.random()*.08;
   const dir=Math.random()<.5?1:-1;
   const n=22;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
+    const angle=start+dir*(turns*Math.PI*2)*t;
     cns.push({
-      angle:start+dir*(turns*Math.PI*2)*t,
-      z:-.03-.055*i,
+      angle,
+      z:-.04-.058*i,
       collected:false
     });
   }
-  coinModeTimer=150;
+  coinModeTimer=165;
 }
 
 function spawnCoinsInGap(blockedSectors){
