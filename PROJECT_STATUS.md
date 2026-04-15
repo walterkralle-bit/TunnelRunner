@@ -53,6 +53,8 @@
 - Coin-Collection wurde enger gezogen, um Fehl-Einsammeln rund um Sprünge zu reduzieren
 - Coin-Spiralen wurden flacher und länger gemacht, damit sie klarer lesbar und besser fahrbar sind
 - Coin-Collect-Logik wurde weiter verschärft, damit Spiral-Münzen nicht kettenartig falsch eingesammelt werden
+- Brown-Block-Gruppen werden jetzt als zusammenhängendere Wandsegmente gespawnt statt nur als lose Einzelblöcke
+- Coin-Spiral-Phasen werden stärker von Hindernisdruck freigehalten
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

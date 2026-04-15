@@ -348,9 +348,26 @@ function spawnBlockSet(diff){
   let available=[];
   for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
   for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-  const blocked=available.slice(0,Math.min(numBlock,available.length));
-  for(let s of blocked){
-    obs.push({type:'block',angle:s*SECTOR_SIZE+SECTOR_SIZE/2,arcSize:SECTOR_SIZE*.85,z:0,depth:.09+Math.random()*.04,spd:CFG.obsSpeed,passed:false,sectors:[s]});
+  const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
+
+  const groups=[];
+  let current=[];
+  for(const s of blocked){
+    if(!current.length||s===current[current.length-1]+1){
+      current.push(s);
+    } else {
+      groups.push(current);
+      current=[s];
+    }
+  }
+  if(current.length)groups.push(current);
+
+  for(const group of groups){
+    const start=group[0];
+    const end=group[group.length-1];
+    const center=((start+end+1)/2)*SECTOR_SIZE;
+    const arc=group.length*SECTOR_SIZE*.92;
+    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth:.09+Math.random()*.04,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
   }
   return blocked;
 }
@@ -427,7 +444,7 @@ function updateObs(dt){
 function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>0||obs.filter(o=>o.z<.42).length>1||coinModeTimer>0)return;
+  if(activeCoinCount>0||obs.filter(o=>o.z<.55).length>0||coinModeTimer>0)return;
 
   // Clear coin spiral: this phase should teach one obvious line through the tunnel
   const start=pAng+(Math.random()<.5?-1:1)*(.12+Math.random()*.08);
