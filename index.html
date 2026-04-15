@@ -95,6 +95,7 @@ let sAng=Math.PI/2,drag=false;
 let obs=[],cns=[],parts=[];
 let spT=0,cnT=0;
 let spawnPhase=0;
+let coinModeTimer=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -331,11 +332,7 @@ function spawnGroup(){
     return;
   }
   if(phase===4){
-    if(Math.random()<.85)spawnCoins();
-    if(Math.random()<.6){
-      const diffSmall=Math.max(.12,diff*.6);
-      spawnBlockSet(diffSmall);
-    }
+    if(Math.random()<.9)spawnCoins();
     return;
   }
 
@@ -429,21 +426,22 @@ function updateObs(dt){
 function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>2||obs.filter(o=>o.z<.42).length>2)return;
+  if(activeCoinCount>0||obs.filter(o=>o.z<.42).length>1||coinModeTimer>0)return;
 
-  // Guided coin route: encourage a meaningful drive line through the whole tunnel
-  const start=pAng+(Math.random()<.5?-1:1)*(.35+Math.random()*.25);
-  const turns=1.2+Math.random()*.8;
+  // Clear coin spiral: this phase should teach one obvious line through the tunnel
+  const start=pAng+(Math.random()<.5?-1:1)*(.25+Math.random()*.2);
+  const turns=1.45+Math.random()*.45;
   const dir=Math.random()<.5?1:-1;
-  const n=10;
+  const n=16;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     cns.push({
       angle:start+dir*(turns*Math.PI*2)*t,
-      z:-.015-.05*i,
+      z:-.01-.032*i,
       collected:false
     });
   }
+  coinModeTimer=150;
 }
 
 function spawnCoinsInGap(blockedSectors){
@@ -488,28 +486,29 @@ function updateCoins(dt){
   const s=dt*spd;
   for(let c of cns)c.z+=CFG.obsSpeed*s;
   cns=cns.filter(c=>c.z<1.15&&!(c.missed&&(c.missedTime||0)>1.2));
-  
-  // Cannot collect coins AT ALL during a jump (use the flag, not the offset)
-  if(jumping)return; // skip all collection logic while jumping
-  
+  if(coinModeTimer>0)coinModeTimer-=dt;
+
+  // Cannot collect coins AT ALL during a jump
+  if(jumping)return;
+
   // Only collect ONE coin per frame to prevent mass-grabs
   let collectedOne=false;
-  
+
   for(let c of cns){
     if(c.collected||c.missed)continue;
-    
-    // Collection: tight z-window, must be right at player depth
-    if(!collectedOne&&Math.abs(c.z-CFG.playerZ)<.045){
+
+    // Tighter collection: coin must be very close in depth and angle to the wheel
+    if(!collectedOne&&Math.abs(c.z-CFG.playerZ)<.028){
       let ad=Math.abs(pAng-c.angle);ad=Math.min(ad,Math.PI*2-ad);
-      if(ad<.28){
+      if(ad<.16){
         c.collected=true;sc+=100;coinCount++;spawnParts(c.angle,c.z);
         const cr=z2r(c.z);
         addFloat(CX+Math.cos(c.angle)*cr,CY+Math.sin(c.angle)*cr,'+100','#ffdd00');
-        collectedOne=true; // only one per frame
+        collectedOne=true;
       }
     }
     // Mark as missed if it passed the player
-    if(c.z>CFG.playerZ+.02&&!c.collected){
+    if(c.z>CFG.playerZ+.015&&!c.collected){
       c.missed=true;c.missedTime=0;
       const cr=z2r(c.z);
       addFloat(CX+Math.cos(c.angle)*cr,CY+Math.sin(c.angle)*cr,'MISS','#ff4444');
@@ -559,7 +558,7 @@ document.getElementById('go').addEventListener('click',startGame);
 function startGame(){
   run=true;over=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
-  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
   ov.classList.add('hidden');updHUD();

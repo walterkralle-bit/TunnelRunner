@@ -49,7 +49,8 @@
 - Weniger zufällige Spawnfolge, mehr wiedererkennbare Druck-/Ruhephasen
 - Coins stärker entlang sinnvoller Fahrlinien
 - Dritte Gameplay-Pass-Änderung: Ruhephasen mit geführten Coin-Routen durch größere Tunnelbewegungen
-- Kleine Hindernisse können diese Coin-Linien zusätzlich interessanter machen
+- Danach vereinfacht: Coin-Spiral-Phasen sollen klar lesbar sein, ohne konkurrierende Coin-Linien oder harte Hindernisse
+- Coin-Collection wurde enger gezogen, um Fehl-Einsammeln rund um Sprünge zu reduzieren
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel
