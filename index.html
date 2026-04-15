@@ -834,11 +834,12 @@ function drawSingleObs(o){
   }
   
   if(o.type==='ring_segment'){
-    // Blue jumpable segment — same outer/lower edge as brown, but lower top toward tunnel center
+    // Blue jumpable segment — keep thickness, shift outward so its outer edge matches brown
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
+    const blueThickness=thickness*.72;
     const blueOuter=rb;
-    const blueInner=rb-thickness*.56;
-    const t1=rb-thickness*.18, t2=rb-thickness*.36;
+    const blueInner=blueOuter-blueThickness;
+    const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
     // Back / inner face
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
@@ -852,7 +853,7 @@ function drawSingleObs(o){
     // Outer/front edge aligned with brown underside
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
-    // Inner/top edge set lower than brown
+    // Inner/top edge moved outward, but thickness preserved
     cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
     cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
     // Sides

@@ -64,6 +64,7 @@
 - Blue Jump-Segmente sollen über gleiche Unterkante statt gleiche Oberkante mit Brown-Walls lesbarer werden, damit sie niedriger und überspringbar wirken
 - Sichtbare Nähte zwischen zusammenhängenden Brown-Segmenten werden weiter reduziert
 - Screenshot-getriebenes Feintuning an Combo-Geometrie und Segmenthöhen läuft
+- Blue-Segmente werden radial nach außen gesetzt, ohne ihre eigene Dicke zu verlieren
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel
