@@ -9,6 +9,7 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;font-family:'Orbitron',monospace}
   #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:100vh}
+  #gameTopBar{width:400px;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:6px 10px;background:linear-gradient(180deg,#09111f,#0a1018);border-bottom:1px solid rgba(255,255,255,.06)}
   canvas{width:400px;height:440px;display:block}
   #ctrl{width:400px;height:320px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative}
   #whl{width:280px;height:280px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
@@ -29,7 +30,7 @@
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
   .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
-  #pauseBtn{position:absolute;top:10px;right:90px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  #pauseBtn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
   #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
@@ -46,10 +47,10 @@
 </head>
 <body>
 <div id="wrap">
+  <div id="gameTopBar"><button id="pauseBtn" aria-label="Pause">❚❚</button></div>
   <div style="position:relative">
     <canvas id="c" width="800" height="880"></canvas>
     <div id="hud"><div class="hs" id="sc">0</div><div class="hr" id="rc">Record: 0</div><div class="hh" id="hrt">🪙 0</div></div>
-    <button id="pauseBtn" aria-label="Pause">❚❚</button>
     <div id="hint"></div>
     <div id="ov">
       <h1>TUNNEL RUNNER</h1>
@@ -75,8 +76,8 @@
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
-const W=cv.width,H=cv.height,CX=W/2,CY=H*.42;
-const OR=380,IR=45;
+const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
+const OR=360,IR=45;
 
 // ==================== GAME CONFIG ====================
 const CFG={

@@ -3,6 +3,8 @@
 ## Aktueller Stand
 - Basis-Gameplay funktioniert
 - Pause-Feature mit Button + ESC eingebaut
+- Pause-Button aus dem Spielfeld in eine obere Leiste verschoben
+- Tunnel-Framing oben etwas entschärft, damit der Rand nicht abgeschnitten wirkt
 - 8-Sektoren-Kollision implementiert
 - Sprung-Mechanik fertig
 - Münzen-System (Spiral + Gap-Spawn) fertig
