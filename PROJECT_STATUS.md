@@ -58,6 +58,7 @@
 - Spiral-Phasen sollen exklusiver sein, ohne konkurrierende Coin-Sequenzen mitten in der Route
 - Brown/Blue-Combo-Geometrie wird schrittweise bündiger gemacht, damit zwischen Segmenten keine sichtbaren Lücken entstehen
 - Coin-Spiralen werden stärker an sichere Fahrbahnen gebunden statt frei durch problematische Hindernisgeometrie zu laufen
+- Blue Jump-Segmente sollen über gleiche Unterkante statt gleiche Oberkante mit Brown-Walls lesbarer werden, damit sie niedriger und überspringbar wirken
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

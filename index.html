@@ -450,25 +450,28 @@ function updateObs(dt){
 function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>0||obs.filter(o=>o.z<.9).length>0||coinModeTimer>0)return;
+  if(activeCoinCount>0||coinModeTimer>0)return;
 
-  // Clear coin spiral: keep it entirely in a safe lane with no obstacle intersections
+  // Reintroduce a gentle spiral, but only if the current near field is clean
+  const nearObs=obs.filter(o=>o.z<.7);
+  if(nearObs.length>0)return;
+
   const safeSector=getSector(pAng);
   const safeAngle=safeSector*SECTOR_SIZE+SECTOR_SIZE/2;
-  const start=safeAngle+(Math.random()<.5?-1:1)*.04;
-  const turns=.34+Math.random()*.08;
+  const start=safeAngle+(Math.random()<.5?-1:1)*.035;
+  const turns=.28+Math.random()*.06;
   const dir=Math.random()<.5?1:-1;
-  const n=22;
+  const n=18;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     const angle=start+dir*(turns*Math.PI*2)*t;
     cns.push({
       angle,
-      z:-.04-.058*i,
+      z:-.05-.06*i,
       collected:false
     });
   }
-  coinModeTimer=165;
+  coinModeTimer=150;
 }
 
 function spawnCoinsInGap(blockedSectors){
@@ -769,11 +772,11 @@ function drawSingleObs(o){
     cx.fillStyle='#b85828';cx.fill();
     
     // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
-    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);
+    cx.beginPath();cx.arc(CX,CY,rb,sa+.002,ea-.002);
     cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
     
     // Layer 4: BACK EDGE — dark
-    cx.beginPath();cx.arc(CX,CY,rf,sa,ea);
+    cx.beginPath();cx.arc(CX,CY,rf,sa+.002,ea-.002);
     cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
     
     // Layer 5: SIDE WALLS (visible edges of the block)
@@ -801,29 +804,30 @@ function drawSingleObs(o){
   }
   
   if(o.type==='ring_segment'){
-    // Blue jumpable segment — same shape as block but cyan colored
+    // Blue jumpable segment — lower profile than brown walls by keeping the lower edge aligned
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
+    const blueTop=rf+thickness*.72;
+    const t1=rf+thickness*.28, t2=rf+thickness*.52;
     // Back
     cx.beginPath();cx.arc(CX,CY,rf+1,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
     // Body layers
-    const t1=rf+thickness*.33, t2=rf+thickness*.66;
     cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
     cx.fillStyle='#055868';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
     cx.fillStyle='#088898';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.beginPath();cx.arc(CX,CY,blueTop,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
     cx.fillStyle='#0bbccc';cx.fill();
     // Front edge
-    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);
-    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,blueTop,sa+.002,ea-.002);
+    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
     // Back edge
-    cx.beginPath();cx.arc(CX,CY,rf,sa,ea);
-    cx.strokeStyle='#033848';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,rf,sa+.002,ea-.002);
+    cx.strokeStyle='#033848';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
     // Sides
     for(const edgeA of[sa,ea]){
-      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*rf,CY+Math.sin(edgeA)*rf);cx.lineTo(CX+Math.cos(edgeA)*rb,CY+Math.sin(edgeA)*rb);
-      cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*rf,CY+Math.sin(edgeA)*rf);cx.lineTo(CX+Math.cos(edgeA)*blueTop,CY+Math.sin(edgeA)*blueTop);
+      cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
   }
   cx.globalAlpha=1;
