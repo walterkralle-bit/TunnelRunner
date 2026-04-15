@@ -429,15 +429,15 @@ function spawnCoins(){
   if(activeCoinCount>0||obs.filter(o=>o.z<.42).length>1||coinModeTimer>0)return;
 
   // Clear coin spiral: this phase should teach one obvious line through the tunnel
-  const start=pAng+(Math.random()<.5?-1:1)*(.25+Math.random()*.2);
-  const turns=1.45+Math.random()*.45;
+  const start=pAng+(Math.random()<.5?-1:1)*(.18+Math.random()*.12);
+  const turns=.9+Math.random()*.35;
   const dir=Math.random()<.5?1:-1;
-  const n=16;
+  const n=18;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     cns.push({
       angle:start+dir*(turns*Math.PI*2)*t,
-      z:-.01-.032*i,
+      z:-.015-.042*i,
       collected:false
     });
   }
