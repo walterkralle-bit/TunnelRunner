@@ -29,6 +29,8 @@
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
   .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  #pauseBtn{position:absolute;top:10px;right:90px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
   #hint.show{opacity:1}
@@ -47,6 +49,7 @@
   <div style="position:relative">
     <canvas id="c" width="800" height="880"></canvas>
     <div id="hud"><div class="hs" id="sc">0</div><div class="hr" id="rc">Record: 0</div><div class="hh" id="hrt">🪙 0</div></div>
+    <button id="pauseBtn" aria-label="Pause">❚❚</button>
     <div id="hint"></div>
     <div id="ov">
       <h1>TUNNEL RUNNER</h1>
@@ -71,6 +74,7 @@
 </div>
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
+const pauseBtn=document.getElementById('pauseBtn');
 const W=cv.width,H=cv.height,CX=W/2,CY=H*.42;
 const OR=380,IR=45;
 
@@ -89,7 +93,7 @@ const CFG={
 };
 
 // ==================== STATE ====================
-let run=false,over=false,sc=0,hi=0,lives=1,spd=1,dist=0,inv=0,fc=0,coinCount=0;
+let run=false,over=false,paused=false,sc=0,hi=0,lives=1,spd=1,dist=0,inv=0,fc=0,coinCount=0;
 let pAng=Math.PI/2,jumping=false,jf=0,wspin=0;
 let sAng=Math.PI/2,drag=false;
 let obs=[],cns=[],parts=[];
@@ -594,7 +598,7 @@ const ov=document.getElementById('ov');
 document.getElementById('go').addEventListener('click',startGame);
 
 function startGame(){
-  run=true;over=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
+  run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
   obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;
   initBands();
@@ -603,9 +607,27 @@ function startGame(){
 }
 
 function endGame(){
-  run=false;over=true;if(sc>hi)hi=sc;
+  run=false;paused=false;over=true;if(sc>hi)hi=sc;
   ov.classList.remove('hidden');
   ov.innerHTML=`<h2>GAME OVER</h2><div class="fs">${sc.toLocaleString()}</div><p>🪙 ${coinCount} Münzen</p><p>Record: ${hi.toLocaleString()}</p><button class="btn" onclick="startGame()">NOCHMAL</button>`;
+}
+
+function showPauseMenu(){
+  paused=true;
+  ov.classList.remove('hidden');
+  ov.innerHTML=`<div style="margin-top:auto;width:100%;padding:0 0 28px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><h2 style="margin-bottom:18px;color:#9fd8ff">PAUSE</h2><div style="display:flex;gap:12px"><button class="btn" onclick="resumeGame()">FORTFAHREN</button><button class="btn" onclick="endGame()">ENDE</button></div></div>`;
+}
+
+function resumeGame(){
+  if(!run)return;
+  paused=false;
+  ov.classList.add('hidden');
+}
+
+function togglePause(){
+  if(!run||over)return;
+  if(paused)resumeGame();
+  else showPauseMenu();
 }
 
 function updHUD(){
@@ -642,7 +664,11 @@ whl.addEventListener('touchmove',e=>{if(drag)steer(e.touches[0].clientX,e.touche
 whl.addEventListener('touchend',()=>{drag=false});
 jmpBtn.addEventListener('mousedown',e=>{e.stopPropagation();doJump()});
 jmpBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();doJump()});
-document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();doJump()}});
+pauseBtn.addEventListener('click',e=>{e.preventDefault();togglePause()});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Escape'){e.preventDefault();togglePause();return}
+  if(e.code==='Space'){e.preventDefault();if(!paused)doJump()}
+});
 
 // ==================== GAME LOOP ====================
 let lastT=performance.now();
@@ -650,7 +676,7 @@ let firstBlockShown=false,firstRingShown=false;
 
 function loop(ts){
   const dt=Math.min((ts-lastT)/16.67,3);lastT=ts;
-  if(run){
+  if(run&&!paused){
     fc+=dt;dist+=spd*dt;sc+=Math.floor(spd*dt*2);
     spd=1+dist*CFG.rampSpeed;
     
