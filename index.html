@@ -799,11 +799,11 @@ function drawSingleObs(o){
     cx.fillStyle='#b85828';cx.fill();
     
     // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
-    cx.beginPath();cx.arc(CX,CY,rb,sa+.002,ea-.002);
+    cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
     cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
     
     // Layer 4: BACK EDGE — dark
-    cx.beginPath();cx.arc(CX,CY,rf,sa+.002,ea-.002);
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
     cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
     
     // Layer 5: SIDE WALLS (visible edges of the block)
@@ -826,34 +826,35 @@ function drawSingleObs(o){
     cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
     
     // Layer 7: Front highlight for 3D pop
-    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.02,ea-.02);
+    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
     cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
-    // Blue jumpable segment — lower profile than brown walls by keeping the lower edge aligned
+    // Blue jumpable segment — same outer/lower edge as brown, but lower top toward tunnel center
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    const blueTop=rf+thickness*.72;
-    const t1=rf+thickness*.28, t2=rf+thickness*.52;
-    // Back
-    cx.beginPath();cx.arc(CX,CY,rf+1,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
+    const blueOuter=rb;
+    const blueInner=rb-thickness*.72;
+    const t1=rb-thickness*.28, t2=rb-thickness*.5;
+    // Back / inner face
+    cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
-    // Body layers
-    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#055868';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
-    cx.fillStyle='#088898';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,blueTop,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    // Body layers from outer edge inward
+    cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
     cx.fillStyle='#0bbccc';cx.fill();
-    // Front edge
-    cx.beginPath();cx.arc(CX,CY,blueTop,sa+.002,ea-.002);
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#088898';cx.fill();
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
+    cx.fillStyle='#055868';cx.fill();
+    // Outer/front edge aligned with brown underside
+    cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.003,ea+.003);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
-    // Back edge
-    cx.beginPath();cx.arc(CX,CY,rf,sa+.002,ea-.002);
+    // Inner/top edge set lower than brown
+    cx.beginPath();cx.arc(CX,CY,blueInner,sa+.002,ea-.002);
     cx.strokeStyle='#033848';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
     // Sides
     for(const edgeA of[sa,ea]){
-      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*rf,CY+Math.sin(edgeA)*rf);cx.lineTo(CX+Math.cos(edgeA)*blueTop,CY+Math.sin(edgeA)*blueTop);
+      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
   }
