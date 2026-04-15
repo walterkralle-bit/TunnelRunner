@@ -74,6 +74,12 @@ const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const W=cv.width,H=cv.height,CX=W/2,CY=H*.42;
 const OR=380,IR=45;
 
+const PROJ={
+  near:.18,
+  far:10,
+  tunnelDepth:14,
+};
+
 // ==================== GAME CONFIG ====================
 const CFG={
   playerZ:.82,
@@ -105,8 +111,25 @@ function getSector(angle){
   return Math.floor(a/SECTOR_SIZE);
 }
 
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+function zNormToWorld(z){
+  const zn=clamp(z,0,1.1);
+  return PROJ.near+(1-zn)*PROJ.tunnelDepth;
+}
+
+function worldToNorm(wz){
+  return clamp(1-((wz-PROJ.near)/PROJ.tunnelDepth),0,1.1);
+}
+
+function worldToRadius(wz){
+  const depth=Math.max(PROJ.near,Math.min(PROJ.far,wz));
+  const t=(1/depth-1/PROJ.far)/(1/PROJ.near-1/PROJ.far);
+  return IR+(OR-IR)*clamp(t,0,1);
+}
+
 function z2r(z){
-  return IR+(OR-IR)*Math.pow(Math.max(0,z),1.8);
+  return worldToRadius(zNormToWorld(z));
 }
 
 // ==================== TUNNEL ====================
@@ -633,14 +656,14 @@ function drawSceneSplit(){
 function drawSingleObs(o){
   if(o.z<.04)return;
   
-  // Both radii calculated through z2r — thickness grows with perspective naturally
-  // Blocks have large z-depth, rings have medium z-depth
-  const blockDepth=.14; // z-space depth for blocks (massive walls)
-  const ringDepth=.08;  // z-space depth for rings
+  // Project depth in world space so obstacle thickness keeps its proportions
+  const blockDepth=.14;
+  const ringDepth=.08;
   const zDepth=o.type==='block'?blockDepth:ringDepth;
-  
-  const rf=z2r(o.z);
-  const rb=z2r(Math.min(1.1,o.z+zDepth));
+  const frontWorld=zNormToWorld(o.z);
+  const backWorld=zNormToWorld(Math.min(1.1,o.z+zDepth));
+  const rf=worldToRadius(frontWorld);
+  const rb=worldToRadius(backWorld);
   const thickness=rb-rf;
   
   if(rf<10||thickness<2)return;
@@ -762,8 +785,9 @@ function drawSingleObs(o){
 function drawSingleCoin(c){
   if(c.collected)return;
   const r=z2r(c.z);
-  // Perspective-correct size matching z2r curve
-  const sz=2+Math.pow(Math.max(0,c.z),1.8)*20;
+  const coinWorld=zNormToWorld(c.z);
+  const coinScale=(1/coinWorld-1/PROJ.far)/(1/PROJ.near-1/PROJ.far);
+  const sz=2+clamp(coinScale,0,1)*20;
   const x=CX+Math.cos(c.angle)*r,y=CY+Math.sin(c.angle)*r;
   
   if(c.missed){

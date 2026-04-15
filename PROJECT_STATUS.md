@@ -13,12 +13,13 @@
 
 ## Offene Probleme (Priorität)
 
-### 🔴 HOCH: Perspektive / Rendering
-**Das größte ungelöste Problem.**
-- Aktuelle Formel: `z^1.8` — funktioniert technisch, aber:
-  - Hindernisse werden beim Näherkommen **flacher/niedriger** statt größer
-  - Visuelle Geschwindigkeit: Objekte **zu schnell in der Ferne, zu langsam am Spieler**
-- Ziel: echte `1/z`-Projektion (Pseudo-3D-Racer Stil)
+### 🟠 IN ARBEIT: Perspektive / Rendering
+- Alte Formel `z^1.8` wurde als Hauptproblem identifiziert
+- Erste Umstellung auf eine echte `1/z`-artige Weltdepth-Projektion ist jetzt eingebaut
+- Nächster Schritt: im Browser feinjustieren, bis
+  - Hindernisse beim Näherkommen ihre Proportionen behalten
+  - Objekte näher am Spieler visuell schneller wirken
+  - Tunnel nicht leer oder zu stark gestaucht aussieht
 - Referenz: https://gabrielgambetta.com/computer-graphics-from-scratch/09-perspective-projection.html
 - Referenz: https://jakesgordon.com/writing/javascript-racer-v1-straight/
 
@@ -37,7 +38,7 @@
 - Erst wenn Web-Version stabil und getestet
 
 ## Nächster Schritt
-➡️ Perspektive mit echter `1/z`-Projektion lösen
+➡️ Neue Projektion im laufenden Spiel testen und die Parameter `near`, `far`, `tunnelDepth` fein abstimmen
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel
