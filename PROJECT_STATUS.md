@@ -37,7 +37,14 @@
 - Erst wenn Web-Version stabil und getestet
 
 ## Nächster Schritt
-➡️ Perspektive mit echter `1/z`-Projektion lösen
+➡️ Stückweise Gameplay-Treue erhöhen: zuerst Flow, Tempo, Spawn-Rhythmus und Lenkgefühl feinjustieren
+
+## Aktuelle Iteration
+- Erste kleine Gameplay-Pass-Änderung auf Flow/Pacing
+- Etwas schnellerer Vorwärtsfluss
+- Kürzerer, knackigerer Sprung
+- Leicht trägeres, kontrollierteres Steering
+- Coins etwas ruhiger zwischen Hindernisphasen
 
 ## Wichtige Design-Entscheidungen
 - **NICHT** "Dodge!"/"Jump!"-Hinweistexte im Spiel

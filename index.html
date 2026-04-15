@@ -77,15 +77,15 @@ const OR=380,IR=45;
 // ==================== GAME CONFIG ====================
 const CFG={
   playerZ:.82,
-  obsSpeed:.0032,
-  jumpDur:36,
-  jumpHeight:.28,
-  steerSmooth:.12,
-  steerMax:.12,
-  graceTime:180,
-  spawnStart:130,      // compensate slower speed with more frequent spawns
-  spawnMin:40,
-  rampSpeed:.00015,
+  obsSpeed:.00355,
+  jumpDur:32,
+  jumpHeight:.25,
+  steerSmooth:.105,
+  steerMax:.095,
+  graceTime:150,
+  spawnStart:118,
+  spawnMin:46,
+  rampSpeed:.00012,
 };
 
 // ==================== STATE ====================
@@ -397,9 +397,9 @@ function updateObs(dt){
 
 // ==================== COINS ====================
 function spawnCoins(){
-  // Don't spawn if there are already uncollected coins approaching
+  // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>2)return;
+  if(activeCoinCount>2||obs.filter(o=>o.z<.42).length>2)return;
   
   const base=Math.random()*Math.PI*2;
   const n=4+Math.floor(Math.random()*4);
@@ -592,7 +592,7 @@ function loop(ts){
     }
     // Coins — spawn in quiet moments
     cnT+=dt;
-    if(cnT>100&&dist>120){cnT=0;spawnCoins()}
+    if(cnT>118&&dist>140){cnT=0;spawnCoins()}
     
     updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
