@@ -349,10 +349,19 @@ function spawnBlockSet(diff){
   for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
   for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
   const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
+  pushMergedBlocks(blocked,.09+Math.random()*.04);
+  return blocked;
+}
 
+function spawnRingObs(){
+  obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
+}
+
+function pushMergedBlocks(sectors, depth=.08){
+  const sorted=[...sectors].sort((a,b)=>a-b);
   const groups=[];
   let current=[];
-  for(const s of blocked){
+  for(const s of sorted){
     if(!current.length||s===current[current.length-1]+1){
       current.push(s);
     } else {
@@ -367,13 +376,8 @@ function spawnBlockSet(diff){
     const end=group[group.length-1];
     const center=((start+end+1)/2)*SECTOR_SIZE;
     const arc=group.length*SECTOR_SIZE*.92;
-    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth:.09+Math.random()*.04,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
+    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
   }
-  return blocked;
-}
-
-function spawnRingObs(){
-  obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
 }
 
 function spawnComboRing(diff){
@@ -382,14 +386,16 @@ function spawnComboRing(diff){
   let all=[];for(let i=0;i<SECTORS;i++)all.push(i);
   for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
   const blue=all.slice(0,numBlue);
+  const brown=[];
   for(let i=0;i<SECTORS;i++){
     const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
     if(blue.includes(i)){
       obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE*.92,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
     } else {
-      obs.push({type:'block',angle,arcSize:SECTOR_SIZE*.92,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
+      brown.push(i);
     }
   }
+  pushMergedBlocks(brown,.08);
 }
 
 function updateObs(dt){
@@ -444,18 +450,18 @@ function updateObs(dt){
 function spawnCoins(){
   // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
-  if(activeCoinCount>0||obs.filter(o=>o.z<.55).length>0||coinModeTimer>0)return;
+  if(activeCoinCount>0||obs.filter(o=>o.z<.75).length>0||coinModeTimer>0)return;
 
   // Clear coin spiral: this phase should teach one obvious line through the tunnel
-  const start=pAng+(Math.random()<.5?-1:1)*(.12+Math.random()*.08);
-  const turns=.55+Math.random()*.18;
+  const start=pAng+(Math.random()<.5?-1:1)*(.08+Math.random()*.05);
+  const turns=.42+Math.random()*.12;
   const dir=Math.random()<.5?1:-1;
-  const n=20;
+  const n=22;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     cns.push({
       angle:start+dir*(turns*Math.PI*2)*t,
-      z:-.02-.05*i,
+      z:-.03-.055*i,
       collected:false
     });
   }
@@ -653,7 +659,7 @@ function loop(ts){
     }
     // Coins — spawn in quiet moments
     cnT+=dt;
-    if(cnT>118&&dist>140){cnT=0;spawnCoins()}
+    if(cnT>118&&dist>140&&coinModeTimer<=0){cnT=0;spawnCoins()}
     
     updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
