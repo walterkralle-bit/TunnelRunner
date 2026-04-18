@@ -102,7 +102,6 @@ let spT=0,cnT=0;
 let spawnPhase=0;
 let coinModeTimer=0;
 let coinCollectCooldown=0;
-let laneBlockCooldown=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -308,17 +307,8 @@ let lastCoinSpawnZ=0;
 
 function spawnGroup(){
   const diff=Math.min(1,dist/5000);
-  const phase=spawnPhase%7;
+  const phase=spawnPhase%6;
   spawnPhase++;
-
-  if(laneBlockCooldown>0)laneBlockCooldown--;
-
-  if(diff>.28&&laneBlockCooldown<=0&&(phase===2||phase===5)&&Math.random()<.65){
-    const blocked=spawnLaneBlockPassage(diff);
-    laneBlockCooldown=5;
-    if(Math.random()<.8)spawnCoinsInGap(blocked);
-    return;
-  }
 
   if(phase===0){
     const blocked=spawnBlockSet(diff*.85);
@@ -351,13 +341,9 @@ function spawnGroup(){
     if(Math.random()<.9)spawnCoins();
     return;
   }
-  if(phase===5){
-    const blocked=spawnBlockSet(diff*.95);
-    if(Math.random()<.55)spawnCoinsInGap(blocked);
-    return;
-  }
 
-  if(Math.random()<.45)spawnCoins();
+  const blocked=spawnBlockSet(diff*.95);
+  if(Math.random()<.55)spawnCoinsInGap(blocked);
 }
 
 function spawnBlockSet(diff){
@@ -376,52 +362,26 @@ function spawnRingObs(){
   obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
 }
 
-function spawnLaneBlockPassage(diff){
-  const width=diff>.7?Math.random()<.55?4:3:3;
-  const span=3+Math.floor(diff*3);
-  const gapSize=Math.max(1,SECTORS-width);
-  const playerSector=getSector(pAng);
-  let start=(playerSector+2+Math.floor(Math.random()*3))%SECTORS;
-  const blocked=[];
-  for(let i=0;i<width;i++)blocked.push((start+i)%SECTORS);
-
-  for(let i=0;i<span;i++){
-    const zOffset=-(i*.11);
-    const depth=.1+Math.random()*.025;
-    pushMergedBlocks(blocked,depth,zOffset);
-  }
-  return blocked.sort((a,b)=>a-b);
-}
-
-function pushMergedBlocks(sectors, depth=.08, zOffset=0){
-  const normalized=[...sectors].map(s=>((s%SECTORS)+SECTORS)%SECTORS).sort((a,b)=>a-b);
-  const uniq=[...new Set(normalized)];
-  const occupied=new Array(SECTORS).fill(false);
-  for(const s of uniq)occupied[s]=true;
+function pushMergedBlocks(sectors, depth=.08){
+  const sorted=[...sectors].sort((a,b)=>a-b);
   const groups=[];
-  let i=0;
-  while(i<SECTORS){
-    if(!occupied[i]){i++;continue}
-    const group=[];
-    let j=i;
-    while(j<SECTORS&&occupied[j]){group.push(j);j++}
-    groups.push(group);
-    i=j;
+  let current=[];
+  for(const s of sorted){
+    if(!current.length||s===current[current.length-1]+1){
+      current.push(s);
+    } else {
+      groups.push(current);
+      current=[s];
+    }
   }
-  if(occupied[0]&&occupied[SECTORS-1]&&groups.length>1){
-    const first=groups[0];
-    const last=groups[groups.length-1];
-    groups[0]=last.concat(first);
-    groups.pop();
-  }
+  if(current.length)groups.push(current);
 
   for(const group of groups){
-    const sortedGroup=[...group].sort((a,b)=>a-b);
-    const first=sortedGroup[0];
-    const len=sortedGroup.length;
-    const center=((first+len/2)%SECTORS)*SECTOR_SIZE;
-    const arc=len*SECTOR_SIZE;
-    obs.push({type:'block',angle:center,arcSize:arc,z:zOffset,depth,spd:CFG.obsSpeed,passed:false,sectors:[...sortedGroup]});
+    const start=group[0];
+    const end=group[group.length-1];
+    const center=((start+end+1)/2)*SECTOR_SIZE;
+    const arc=group.length*SECTOR_SIZE;
+    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
   }
 }
 
@@ -445,11 +405,7 @@ function spawnComboRing(diff){
 
 function updateObs(dt){
   const s=dt*spd;
-  for(let o of obs){
-    const t=Math.max(0,Math.min(1,o.z));
-    const accel=.9+.22*t+.04*t*t;
-    o.z+=o.spd*s*accel;
-  }
+  for(let o of obs)o.z+=o.spd*s;
   obs=obs.filter(o=>o.z<1.15);
   if(inv>0)return;
   
@@ -777,14 +733,15 @@ function drawSceneSplit(){
 function drawSingleObs(o){
   if(o.z<.04)return;
   
-  const blockDepth=.14;
-  const ringDepth=.08;
+  // Both radii calculated through z2r — thickness grows with perspective naturally
+  // Blocks have large z-depth, rings have medium z-depth
+  const blockDepth=.14; // z-space depth for blocks (massive walls)
+  const ringDepth=.08;  // z-space depth for rings
   const zDepth=o.type==='block'?blockDepth:ringDepth;
   
   const rf=z2r(o.z);
   const rb=z2r(Math.min(1.1,o.z+zDepth));
   const thickness=rb-rf;
-  const frontWeight=Math.max(1,thickness*.1);
   
   if(rf<10||thickness<2)return;
   const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
@@ -821,54 +778,59 @@ function drawSingleObs(o){
   
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    const midA=(sa+ea)/2;
-    const verticalBias=(Math.sin(midA)+1)*.5; // bottom/outside = larger
-    const widthScale=.72+verticalBias*.42;
-    const depthScale=.78+verticalBias*.34;
-    const angularInset=o.arcSize*(.1-(verticalBias*.03));
-
-    const frontOuter=rb;
-    const frontInner=Math.max(rf+thickness*.16, rb-thickness*(.42*depthScale));
-    const backOuter=rb-thickness*(.16*depthScale);
-    const backInner=rf+thickness*(.08*(1.1-verticalBias*.25));
-    const frontLeft=sa+angularInset;
-    const frontRight=ea-angularInset;
-    const backLeft=sa+angularInset*(1.35/widthScale);
-    const backRight=ea-angularInset*(1.35/widthScale);
-
-    // back body
+    
+    // === MASSIVE 3D BLOCK ===
+    // Layer 1: BACK FACE (darkest, the far side disappearing into tunnel)
+    const backThick=Math.max(2,thickness*.12);
     cx.beginPath();
-    cx.arc(CX,CY,backOuter,backLeft,backRight);
-    cx.arc(CX,CY,backInner,backRight,backLeft,true);
-    cx.closePath();
-    cx.fillStyle='#6e3016';cx.fill();
-
-    // front face gets wider at the outer/bottom side and narrower toward the inner/top side
-    cx.beginPath();
-    cx.arc(CX,CY,frontOuter,frontLeft,frontRight);
-    cx.arc(CX,CY,frontInner,frontRight,frontLeft,true);
-    cx.closePath();
-    cx.fillStyle='#c87445';cx.fill();
-
-    // side faces
-    for(const side of [[backLeft,frontLeft],[frontRight,backRight]]){
-      cx.beginPath();
-      cx.moveTo(CX+Math.cos(side[0])*backInner,CY+Math.sin(side[0])*backInner);
-      cx.lineTo(CX+Math.cos(side[0])*backOuter,CY+Math.sin(side[0])*backOuter);
-      cx.lineTo(CX+Math.cos(side[1])*frontOuter,CY+Math.sin(side[1])*frontOuter);
-      cx.lineTo(CX+Math.cos(side[1])*frontInner,CY+Math.sin(side[1])*frontInner);
-      cx.closePath();
-      cx.fillStyle='#8c4322';cx.fill();
+    cx.arc(CX,CY,rf+backThick,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
+    cx.fillStyle='#2a1005';cx.fill();
+    
+    // Layer 2: BODY — three bands for depth gradient
+    // Dark back third
+    const t1=rf+thickness*.33, t2=rf+thickness*.66;
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#6a2a10';cx.fill();
+    // Medium middle third
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#8a3c18';cx.fill();
+    // Bright front third
+    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#b85828';cx.fill();
+    
+    // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
+    cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
+    cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
+    
+    // Layer 4: BACK EDGE — dark
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
+    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
+    
+    // Layer 5: SIDE WALLS (visible edges of the block)
+    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
+    if((o.sectors?.length||1)===1){
+      for(const edgeA of[sa,ea]){
+        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+        // Dark side fill
+        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+        // Bright edge highlight at front corner
+        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
+        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
+        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+      }
     }
-
-    cx.beginPath();cx.arc(CX,CY,frontOuter,frontLeft,frontRight);
-    cx.strokeStyle='rgba(225,165,115,.42)';cx.lineWidth=Math.max(1.1,thickness*.032);cx.stroke();
-
-    cx.beginPath();cx.arc(CX,CY,frontInner,frontRight,frontLeft,true);
-    cx.strokeStyle='rgba(80,30,12,.24)';cx.lineWidth=Math.max(1,thickness*.022);cx.stroke();
-
-    cx.beginPath();cx.arc(CX,CY,(frontOuter+frontInner)*.5,frontLeft,frontRight);
-    cx.strokeStyle='rgba(255,220,180,.05)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
+    
+    // Layer 6: Surface detail lines for panel look
+    cx.beginPath();cx.arc(CX,CY,t1,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.4)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,t2,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    
+    // Layer 7: Front highlight for 3D pop
+    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
+    cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
