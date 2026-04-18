@@ -230,6 +230,26 @@ function pPos(){const jo=jOff(),r=z2r(CFG.playerZ-jo);return{x:CX+Math.cos(pAng)
 
 function drawPlayer(){
   const p=pPos(),sz=18+CFG.playerZ*8;
+  const shadowR=z2r(CFG.playerZ);
+  const shadowX=CX+Math.cos(pAng)*shadowR;
+  const shadowY=CY+Math.sin(pAng)*shadowR;
+  const lift=Math.max(0,jOff()/CFG.jumpHeight);
+  
+  // Contact shadow / wall marker makes depth and jump timing easier to read
+  cx.save();
+  cx.translate(shadowX,shadowY);
+  cx.rotate(pAng+Math.PI/2);
+  cx.scale(1,.55+.2*lift);
+  cx.beginPath();
+  cx.arc(0,0,sz*(.78-.14*lift),0,Math.PI*2);
+  cx.fillStyle=`rgba(0,0,0,${.26-.1*lift})`;
+  cx.fill();
+  cx.beginPath();
+  cx.arc(0,0,sz*(.95-.1*lift),0,Math.PI*2);
+  cx.strokeStyle=`rgba(120,220,255,${.26-.12*lift})`;
+  cx.lineWidth=Math.max(2,sz*.09);
+  cx.stroke();
+  cx.restore();
   
   // Long trail going INTO the tunnel (fades toward center = depth)
   // This is key for the "driving forward" feeling
@@ -939,33 +959,46 @@ function drawSingleObs(o){
   }
   
   if(o.type==='ring_segment'){
-    // Blue jumpable segment — keep thickness, shift outward so its outer edge matches brown
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
     const blueThickness=thickness*.72;
     const blueOuter=rb;
     const blueInner=rb-blueThickness;
     const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
-    // Back / inner face
+    const approach=Math.max(0,Math.min(1,(o.z-.18)/(.82-.18)));
+    const glowAlpha=.1+.28*approach;
+    const pulse=1+.08*Math.sin(fc*.18+o.angle*5);
+
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
-    // Body layers from outer edge inward
+
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
     cx.fillStyle='#0bbccc';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
     cx.fillStyle='#088898';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
     cx.fillStyle='#055868';cx.fill();
-    // Outer/front edge aligned with brown underside
+
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
-    // Inner/top edge moved outward, but thickness preserved
     cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
     cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
-    // Sides
+
     for(const edgeA of[sa,ea]){
       cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
+
+    cx.beginPath();
+    cx.arc(CX,CY,blueOuter+thickness*.1*pulse,sa-.01,ea+.01);
+    cx.strokeStyle=`rgba(110,245,255,${glowAlpha})`;
+    cx.lineWidth=Math.max(3,thickness*.09);
+    cx.stroke();
+
+    cx.beginPath();
+    cx.arc(CX,CY,blueOuter-thickness*.18,sa+.012,ea-.012);
+    cx.strokeStyle=`rgba(255,255,255,${.12+.18*approach})`;
+    cx.lineWidth=Math.max(1.5,thickness*.035);
+    cx.stroke();
   }
   cx.globalAlpha=1;
 }
