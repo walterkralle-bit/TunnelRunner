@@ -76,9 +76,7 @@
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
-const W=cv.width,H=cv.height;
-const BASE_CX=W/2,BASE_CY=H*.45;
-let CX=BASE_CX,CY=BASE_CY;
+const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
 const OR=360,IR=45;
 
 // ==================== GAME CONFIG ====================
@@ -142,15 +140,6 @@ function getTunnelHue(){
   let h0=hues[idx],h1=hues[next];
   if(Math.abs(h1-h0)>180){if(h1>h0)h0+=360;else h1+=360}
   return((h0+(h1-h0)*t)%360);
-}
-
-function updateCamera(dt){
-  const targetShift=28;
-  const tx=BASE_CX+Math.cos(pAng)*targetShift;
-  const ty=BASE_CY+Math.sin(pAng)*targetShift;
-  const lerp=Math.min(1,.12*dt);
-  CX+=(tx-CX)*lerp;
-  CY+=(ty-CY)*lerp;
 }
 
 function drawTunnel(){
@@ -749,7 +738,7 @@ function loop(ts){
     cnT+=dt;
     if(cnT>118&&dist>140&&coinModeTimer<=0){cnT=0;spawnCoins()}
     
-    updatePlayer(dt);updateCamera(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
+    updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
   drawTunnel();drawSceneSplit();drawSparks();drawParts();drawFloats();
   requestAnimationFrame(loop);
