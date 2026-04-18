@@ -76,7 +76,9 @@
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
-const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
+const W=cv.width,H=cv.height;
+const BASE_CX=W/2,BASE_CY=H*.45;
+let CX=BASE_CX,CY=BASE_CY;
 const OR=360,IR=45;
 
 // ==================== GAME CONFIG ====================
@@ -140,6 +142,15 @@ function getTunnelHue(){
   let h0=hues[idx],h1=hues[next];
   if(Math.abs(h1-h0)>180){if(h1>h0)h0+=360;else h1+=360}
   return((h0+(h1-h0)*t)%360);
+}
+
+function updateCamera(dt){
+  const targetShift=28;
+  const tx=BASE_CX+Math.cos(pAng)*targetShift;
+  const ty=BASE_CY+Math.sin(pAng)*targetShift;
+  const lerp=Math.min(1,.12*dt);
+  CX+=(tx-CX)*lerp;
+  CY+=(ty-CY)*lerp;
 }
 
 function drawTunnel(){
@@ -738,7 +749,7 @@ function loop(ts){
     cnT+=dt;
     if(cnT>118&&dist>140&&coinModeTimer<=0){cnT=0;spawnCoins()}
     
-    updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
+    updatePlayer(dt);updateCamera(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
   drawTunnel();drawSceneSplit();drawSparks();drawParts();drawFloats();
   requestAnimationFrame(loop);
@@ -777,10 +788,8 @@ function drawSceneSplit(){
 function drawSingleObs(o){
   if(o.z<.04)return;
   
-  // Both radii calculated through z2r — thickness grows with perspective naturally
-  // Blocks have large z-depth, rings have medium z-depth
-  const blockDepth=.14; // z-space depth for blocks (massive walls)
-  const ringDepth=.08;  // z-space depth for rings
+  const blockDepth=.14;
+  const ringDepth=.08;
   const zDepth=o.type==='block'?blockDepth:ringDepth;
   
   const rf=z2r(o.z);
@@ -824,65 +833,53 @@ function drawSingleObs(o){
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
     const midA=(sa+ea)/2;
-    const outerFront=rb;
-    const innerFront=Math.max(rf+thickness*.18, rb-thickness*.58);
-    const outerBack=Math.max(innerFront+1, rb-thickness*.24);
-    const bevel=Math.min(.045, o.arcSize*.16);
+    const verticalBias=(Math.sin(midA)+1)*.5; // bottom/outside = larger
+    const widthScale=.72+verticalBias*.42;
+    const depthScale=.78+verticalBias*.34;
+    const angularInset=o.arcSize*(.1-(verticalBias*.03));
+
+    const frontOuter=rb;
+    const frontInner=Math.max(rf+thickness*.16, rb-thickness*(.42*depthScale));
+    const backOuter=rb-thickness*(.16*depthScale);
+    const backInner=rf+thickness*(.08*(1.1-verticalBias*.25));
+    const frontLeft=sa+angularInset;
+    const frontRight=ea-angularInset;
+    const backLeft=sa+angularInset*(1.35/widthScale);
+    const backRight=ea-angularInset*(1.35/widthScale);
 
     // back body
     cx.beginPath();
-    cx.arc(CX,CY,outerBack,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.arc(CX,CY,backOuter,backLeft,backRight);
+    cx.arc(CX,CY,backInner,backRight,backLeft,true);
+    cx.closePath();
     cx.fillStyle='#6e3016';cx.fill();
 
-    // front face, brighter and flatter like inserted wedge block
+    // front face gets wider at the outer/bottom side and narrower toward the inner/top side
     cx.beginPath();
-    cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.arc(CX,CY,innerFront,ea-bevel,sa+bevel,true);
+    cx.arc(CX,CY,frontOuter,frontLeft,frontRight);
+    cx.arc(CX,CY,frontInner,frontRight,frontLeft,true);
     cx.closePath();
     cx.fillStyle='#c87445';cx.fill();
 
-    // darker side bevel strips
-    for(const pair of [[sa,sa+bevel],[ea-bevel,ea]]){
+    // side faces
+    for(const side of [[backLeft,frontLeft],[frontRight,backRight]]){
       cx.beginPath();
-      cx.arc(CX,CY,outerFront,pair[0],pair[1]);
-      cx.arc(CX,CY,rf,pair[1],pair[0],true);
+      cx.moveTo(CX+Math.cos(side[0])*backInner,CY+Math.sin(side[0])*backInner);
+      cx.lineTo(CX+Math.cos(side[0])*backOuter,CY+Math.sin(side[0])*backOuter);
+      cx.lineTo(CX+Math.cos(side[1])*frontOuter,CY+Math.sin(side[1])*frontOuter);
+      cx.lineTo(CX+Math.cos(side[1])*frontInner,CY+Math.sin(side[1])*frontInner);
       cx.closePath();
       cx.fillStyle='#8c4322';cx.fill();
     }
 
-    // front outline softer and more realistic, less neon-like
-    cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(225,165,115,.45)';cx.lineWidth=Math.max(1.1,thickness*.035);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,frontOuter,frontLeft,frontRight);
+    cx.strokeStyle='rgba(225,165,115,.42)';cx.lineWidth=Math.max(1.1,thickness*.032);cx.stroke();
 
-    // outer shadow lip so the outside edge feels thicker and less flat
-    cx.beginPath();cx.arc(CX,CY,outerFront-frontWeight*.95,sa+bevel*.95,ea-bevel*.95);
-    cx.strokeStyle='rgba(88,38,18,.18)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,frontInner,frontRight,frontLeft,true);
+    cx.strokeStyle='rgba(80,30,12,.24)';cx.lineWidth=Math.max(1,thickness*.022);cx.stroke();
 
-    // inner front shadow to separate face from body
-    cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(80,30,12,.28)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
-
-    // subtle center plane highlight like the original chunky pieces
-    cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
-    cx.strokeStyle='rgba(255,220,180,.06)';cx.lineWidth=Math.max(1,thickness*.016);cx.stroke();
-
-    // remove hard radial seams almost completely, keep only a very soft corner suggestion
-    for(const edgeA of[sa,ea]){
-      const ex=CX+Math.cos(edgeA)*(outerFront-frontWeight*.5);
-      const ey=CY+Math.sin(edgeA)*(outerFront-frontWeight*.5);
-      const ex2=CX+Math.cos(edgeA)*(outerFront-frontWeight*.08);
-      const ey2=CY+Math.sin(edgeA)*(outerFront-frontWeight*.08);
-      cx.beginPath();cx.moveTo(ex,ey);cx.lineTo(ex2,ey2);
-      cx.strokeStyle='rgba(70,30,14,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
-    }
-
-    // tiny perspective notch so it reads more as a wedge than a painted ring slice
-    const nx1=CX+Math.cos(midA)*(innerFront+thickness*.05);
-    const ny1=CY+Math.sin(midA)*(innerFront+thickness*.05);
-    const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
-    const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
-    cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
-    cx.strokeStyle='rgba(120,55,24,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,(frontOuter+frontInner)*.5,frontLeft,frontRight);
+    cx.strokeStyle='rgba(255,220,180,.05)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
