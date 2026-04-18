@@ -105,6 +105,7 @@ const CFG={
 let run=false,over=false,paused=false,sc=0,hi=0,lives=1,spd=1,dist=0,inv=0,fc=0,coinCount=0;
 let pAng=Math.PI/2,jumping=false,jf=0,wspin=0;
 let sAng=Math.PI/2,drag=false;
+let playerSectorVisual=getSector(Math.PI/2);
 let obs=[],cns=[],parts=[];
 let spT=0,cnT=0;
 let spawnPhase=0;
@@ -266,6 +267,8 @@ let sparks=[];
 function updatePlayer(dt){
   let d=sAng-pAng;d=Math.atan2(Math.sin(d),Math.cos(d));
   pAng+=Math.sign(d)*Math.min(Math.abs(d)*CFG.steerSmooth,CFG.steerMax)*dt;
+  pAng=((pAng%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+  playerSectorVisual=getSector(pAng+SECTOR_SIZE*.5);
   if(jumping){jf+=dt;if(jf>=CFG.jumpDur){jumping=false;jf=0}}
   if(inv>0)inv-=dt;
   wspin+=.08*spd*dt;
@@ -462,14 +465,13 @@ function updateObs(dt){
   if(inv>0)return;
   
   const isJump=jOff()>.06;
-  const pSec=getSector(pAng);
+  const pSec=playerSectorVisual;
+  const collisionAngle=pAng;
   
   for(let o of obs){
     if(o.passed)continue;
     const back=o.z+(o.depth||.05);
-    // Past player?
     if(o.z>CFG.playerZ+.01){o.passed=true;continue}
-    // In range?
     if(!(o.z<=CFG.playerZ+.005&&back>=CFG.playerZ-.005))continue;
     
     if(o.type==='ring'){
@@ -478,20 +480,21 @@ function updateObs(dt){
     }
     if(o.type==='block'){
       if(o.sectors&&o.sectors.includes(pSec)){
-        let ad=Math.abs(pAng-o.angle);
+        let ad=Math.abs(collisionAngle-o.angle);
         ad=Math.min(ad,Math.PI*2-ad);
-        if(ad<o.arcSize/2-.08){
+        const halfArc=Math.max(0,o.arcSize/2-.035);
+        if(ad<halfArc){
           o.passed=true;die();return;
         }
       }
       if(back>CFG.playerZ)o.passed=true;
     }
     if(o.type==='ring_segment'){
-      // Blue segment: can be jumped over, kills if not jumping and in this sector
       if(o.sectors&&o.sectors.includes(pSec)){
-        let ad=Math.abs(pAng-o.angle);
+        let ad=Math.abs(collisionAngle-o.angle);
         ad=Math.min(ad,Math.PI*2-ad);
-        if(ad<o.arcSize/2-.08){
+        const halfArc=Math.max(0,o.arcSize/2-.035);
+        if(ad<halfArc){
           if(isJump){o.passed=true;continue}
           o.passed=true;die();return;
         }
@@ -588,8 +591,10 @@ function updateCoins(dt){
 
     const dz=Math.abs(c.z-CFG.playerZ);
     let ad=Math.abs(pAng-c.angle);ad=Math.min(ad,Math.PI*2-ad);
+    const coinSector=getSector(c.angle);
+    const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&dz<.022&&ad<.11){
+    if(coinCollectCooldown<=0&&sameSector&&dz<.02&&ad<.07){
       const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
@@ -660,7 +665,7 @@ bindStartButton();
 
 function startGame(){
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
-  pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
+  pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
   obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
