@@ -516,13 +516,23 @@ function updateObs(dt){
 function getBlockedSectorsAtZ(z){
   const blocked=new Set();
   for(const o of obs){
-    if(o.passed||!o.sectors||o.type!=='block')continue;
+    if(o.passed||!o.sectors)continue;
     const back=o.z+(o.depth||.05);
-    if(o.z<=z+.015&&back>=z-.015){
+    if(o.z<=z+.02&&back>=z-.02){
       for(const s of o.sectors)blocked.add(s);
     }
   }
   return blocked;
+}
+
+function isCoinPathSafe(angle,zStart,zStep,count){
+  const sector=getSector(angle);
+  for(let i=0;i<count;i++){
+    const z=zStart-zStep*i;
+    const blocked=getBlockedSectorsAtZ(z);
+    if(blocked.has(sector))return false;
+  }
+  return true;
 }
 
 function spawnCoins(){
@@ -545,6 +555,7 @@ function spawnCoins(){
     const sector=getSector(angle);
     const blocked=getBlockedSectorsAtZ(z);
     if(blocked.has(sector))continue;
+    if(!isCoinPathSafe(angle,z,.06,2))continue;
     cns.push({
       angle,
       z,
@@ -578,6 +589,7 @@ function spawnCoinsInGap(blockedSectors){
   const gapCenter=gapSector*SECTOR_SIZE+SECTOR_SIZE/2;
   
   const n=3;
+  if(!isCoinPathSafe(gapCenter,-.02,.04,n))return;
   for(let i=0;i<n;i++){
     const z=-.02-.04*i;
     const blocked=getBlockedSectorsAtZ(z);
@@ -612,7 +624,7 @@ function updateCoins(dt){
     const coinSector=getSector(c.angle);
     const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.028&&ad<.11){
+    if(coinCollectCooldown<=0&&sameSector&&dz<.031&&ad<.125){
       const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
