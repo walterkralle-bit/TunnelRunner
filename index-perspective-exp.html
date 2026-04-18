@@ -810,24 +810,28 @@ function drawSingleObs(o){
       cx.fillStyle='#8c4322';cx.fill();
     }
 
-    // front outline
+    // front outline softer and more realistic, less neon-like
     cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='#e8a06a';cx.lineWidth=Math.max(2.2,thickness*.075);cx.stroke();
+    cx.strokeStyle='rgba(235,170,115,.7)';cx.lineWidth=Math.max(1.5,thickness*.05);cx.stroke();
+
+    // outer shadow lip so the outside edge feels thicker and less flat
+    cx.beginPath();cx.arc(CX,CY,outerFront-frontWeight*.9,sa+bevel*.9,ea-bevel*.9);
+    cx.strokeStyle='rgba(95,40,18,.32)';cx.lineWidth=Math.max(1.4,thickness*.045);cx.stroke();
 
     // inner front shadow to separate face from body
     cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(80,30,12,.55)';cx.lineWidth=Math.max(1.3,thickness*.04);cx.stroke();
+    cx.strokeStyle='rgba(80,30,12,.4)';cx.lineWidth=Math.max(1.1,thickness*.032);cx.stroke();
 
     // subtle center plane highlight like the original chunky pieces
     cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
-    cx.strokeStyle='rgba(255,220,180,.16)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.strokeStyle='rgba(255,220,180,.1)';cx.lineWidth=Math.max(1,thickness*.022);cx.stroke();
 
-    // radial side edges for solidity
+    // radial side edges much subtler to kill the ugly side line
     for(const edgeA of[sa,ea]){
-      const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
-      const x2=CX+Math.cos(edgeA)*outerFront,y2=CY+Math.sin(edgeA)*outerFront;
+      const x1=CX+Math.cos(edgeA)*(rf+thickness*.08),y1=CY+Math.sin(edgeA)*(rf+thickness*.08);
+      const x2=CX+Math.cos(edgeA)*(outerFront-frontWeight*.35),y2=CY+Math.sin(edgeA)*(outerFront-frontWeight*.35);
       cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
-      cx.strokeStyle='rgba(88,36,16,.6)';cx.lineWidth=Math.max(1.8,thickness*.05);cx.stroke();
+      cx.strokeStyle='rgba(70,30,14,.22)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
     }
 
     // tiny perspective notch so it reads more as a wedge than a painted ring slice
@@ -836,7 +840,7 @@ function drawSingleObs(o){
     const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
     const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
     cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
-    cx.strokeStyle='rgba(120,55,24,.22)';cx.lineWidth=Math.max(1,thickness*.025);cx.stroke();
+    cx.strokeStyle='rgba(120,55,24,.14)';cx.lineWidth=Math.max(1,thickness*.02);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
