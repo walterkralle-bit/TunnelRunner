@@ -112,6 +112,7 @@ let spawnPhase=0;
 let coinModeTimer=0;
 let coinCollectCooldown=0;
 let laneBlockCooldown=0;
+let passageSpawnGuard=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -327,6 +328,7 @@ function spawnGroup(){
   if(diff>.28&&laneBlockCooldown<=0&&(phase===2||phase===5)&&Math.random()<.65){
     const blocked=spawnLaneBlockPassage(diff);
     laneBlockCooldown=5;
+    passageSpawnGuard=7;
     if(Math.random()<.8)spawnCoinsInGap(blocked);
     return;
   }
@@ -337,7 +339,7 @@ function spawnGroup(){
     return;
   }
   if(phase===1){
-    if(Math.random()<.65){
+    if(Math.random()<.65&&passageSpawnGuard<=0){
       spawnRingObs();
     } else {
       const blocked=spawnBlockSet(diff*.9);
@@ -353,8 +355,11 @@ function spawnGroup(){
   if(phase===3){
     if(diff>.22){
       spawnComboRing(diff);
-    } else {
+    } else if(passageSpawnGuard<=0){
       spawnRingObs();
+    } else {
+      const blocked=spawnBlockSet(diff*.82);
+      if(Math.random()<.45)spawnCoinsInGap(blocked);
     }
     return;
   }
@@ -456,6 +461,7 @@ function spawnComboRing(diff){
 
 function updateObs(dt){
   const s=dt*spd;
+  if(passageSpawnGuard>0)passageSpawnGuard-=dt;
   for(let o of obs){
     const t=Math.max(0,Math.min(1,o.z));
     const accel=.9+.22*t+.04*t*t;
@@ -594,7 +600,7 @@ function updateCoins(dt){
     const coinSector=getSector(c.angle);
     const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.02&&ad<.07){
+    if(coinCollectCooldown<=0&&sameSector&&dz<.023&&ad<.082){
       const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
@@ -666,7 +672,7 @@ bindStartButton();
 function startGame(){
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
-  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
   ov.classList.add('hidden');updHUD();
