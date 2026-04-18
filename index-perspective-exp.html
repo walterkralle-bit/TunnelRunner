@@ -513,27 +513,41 @@ function updateObs(dt){
 // (drawObs replaced by drawScene/drawSingleObs above)
 
 // ==================== COINS ====================
+function getBlockedSectorsAtZ(z){
+  const blocked=new Set();
+  for(const o of obs){
+    if(o.passed||!o.sectors||o.type!=='block')continue;
+    const back=o.z+(o.depth||.05);
+    if(o.z<=z+.015&&back>=z-.015){
+      for(const s of o.sectors)blocked.add(s);
+    }
+  }
+  return blocked;
+}
+
 function spawnCoins(){
-  // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
   if(activeCoinCount>0||coinModeTimer>0)return;
 
-  // Reintroduce a gentle spiral, but only if the current near field is clean
   const nearObs=obs.filter(o=>o.z<.7);
   if(nearObs.length>0)return;
 
   const safeSector=getSector(pAng);
   const safeAngle=safeSector*SECTOR_SIZE+SECTOR_SIZE/2;
-  const start=safeAngle+(Math.random()<.5?-1:1)*.035;
-  const turns=.28+Math.random()*.06;
+  const start=safeAngle+(Math.random()<.5?-1:1)*.03;
+  const turns=.2+Math.random()*.04;
   const dir=Math.random()<.5?1:-1;
-  const n=18;
+  const n=16;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     const angle=start+dir*(turns*Math.PI*2)*t;
+    const z=-.05-.06*i;
+    const sector=getSector(angle);
+    const blocked=getBlockedSectorsAtZ(z);
+    if(blocked.has(sector))continue;
     cns.push({
       angle,
-      z:-.05-.06*i,
+      z,
       collected:false
     });
   }
@@ -541,17 +555,13 @@ function spawnCoins(){
 }
 
 function spawnCoinsInGap(blockedSectors){
-  // Place a neat line of coins centered in the free gap
   const freeSectors=[];
   for(let i=0;i<SECTORS;i++){
     if(!blockedSectors.includes(i))freeSectors.push(i);
   }
   if(freeSectors.length===0)return;
   
-  // Find the largest contiguous free gap
   let bestStart=-1,bestLen=0,curStart=0,curLen=0;
-  // Check all sectors including wrap-around
-  const ext=[...freeSectors];
   for(let i=0;i<SECTORS;i++){
     if(freeSectors.includes(i)){
       if(curLen===0)curStart=i;
@@ -564,15 +574,17 @@ function spawnCoinsInGap(blockedSectors){
   
   if(bestStart<0)return;
   
-  // Center of the gap
-  const gapCenter=(bestStart+bestLen/2)*SECTOR_SIZE+SECTOR_SIZE/2;
+  const gapSector=((bestStart+Math.floor(bestLen/2))%SECTORS+SECTORS)%SECTORS;
+  const gapCenter=gapSector*SECTOR_SIZE+SECTOR_SIZE/2;
   
-  // Place 3-5 coins in a straight line along the gap, evenly spaced in depth
-  const n=3; // cleaner reward line in the safe gap
+  const n=3;
   for(let i=0;i<n;i++){
+    const z=-.02-.04*i;
+    const blocked=getBlockedSectorsAtZ(z);
+    if(blocked.has(gapSector))continue;
     cns.push({
-      angle:gapCenter, // all at the same angle = neat line
-      z:-.02-.04*i, // spread further apart in depth
+      angle:gapCenter,
+      z,
       collected:false
     });
   }
@@ -600,7 +612,7 @@ function updateCoins(dt){
     const coinSector=getSector(c.angle);
     const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.025&&ad<.092){
+    if(coinCollectCooldown<=0&&sameSector&&dz<.028&&ad<.11){
       const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
