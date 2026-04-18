@@ -102,6 +102,7 @@ let spT=0,cnT=0;
 let spawnPhase=0;
 let coinModeTimer=0;
 let coinCollectCooldown=0;
+let laneBlockCooldown=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -307,8 +308,17 @@ let lastCoinSpawnZ=0;
 
 function spawnGroup(){
   const diff=Math.min(1,dist/5000);
-  const phase=spawnPhase%6;
+  const phase=spawnPhase%7;
   spawnPhase++;
+
+  if(laneBlockCooldown>0)laneBlockCooldown--;
+
+  if(diff>.28&&laneBlockCooldown<=0&&(phase===2||phase===5)&&Math.random()<.65){
+    const blocked=spawnLaneBlockPassage(diff);
+    laneBlockCooldown=5;
+    if(Math.random()<.8)spawnCoinsInGap(blocked);
+    return;
+  }
 
   if(phase===0){
     const blocked=spawnBlockSet(diff*.85);
@@ -341,9 +351,13 @@ function spawnGroup(){
     if(Math.random()<.9)spawnCoins();
     return;
   }
+  if(phase===5){
+    const blocked=spawnBlockSet(diff*.95);
+    if(Math.random()<.55)spawnCoinsInGap(blocked);
+    return;
+  }
 
-  const blocked=spawnBlockSet(diff*.95);
-  if(Math.random()<.55)spawnCoinsInGap(blocked);
+  if(Math.random()<.45)spawnCoins();
 }
 
 function spawnBlockSet(diff){
@@ -362,26 +376,52 @@ function spawnRingObs(){
   obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
 }
 
-function pushMergedBlocks(sectors, depth=.08){
-  const sorted=[...sectors].sort((a,b)=>a-b);
-  const groups=[];
-  let current=[];
-  for(const s of sorted){
-    if(!current.length||s===current[current.length-1]+1){
-      current.push(s);
-    } else {
-      groups.push(current);
-      current=[s];
-    }
+function spawnLaneBlockPassage(diff){
+  const width=diff>.7?Math.random()<.55?4:3:3;
+  const span=3+Math.floor(diff*3);
+  const gapSize=Math.max(1,SECTORS-width);
+  const playerSector=getSector(pAng);
+  let start=(playerSector+2+Math.floor(Math.random()*3))%SECTORS;
+  const blocked=[];
+  for(let i=0;i<width;i++)blocked.push((start+i)%SECTORS);
+
+  for(let i=0;i<span;i++){
+    const zOffset=-(i*.11);
+    const depth=.1+Math.random()*.025;
+    pushMergedBlocks(blocked,depth,zOffset);
   }
-  if(current.length)groups.push(current);
+  return blocked.sort((a,b)=>a-b);
+}
+
+function pushMergedBlocks(sectors, depth=.08, zOffset=0){
+  const normalized=[...sectors].map(s=>((s%SECTORS)+SECTORS)%SECTORS).sort((a,b)=>a-b);
+  const uniq=[...new Set(normalized)];
+  const occupied=new Array(SECTORS).fill(false);
+  for(const s of uniq)occupied[s]=true;
+  const groups=[];
+  let i=0;
+  while(i<SECTORS){
+    if(!occupied[i]){i++;continue}
+    const group=[];
+    let j=i;
+    while(j<SECTORS&&occupied[j]){group.push(j);j++}
+    groups.push(group);
+    i=j;
+  }
+  if(occupied[0]&&occupied[SECTORS-1]&&groups.length>1){
+    const first=groups[0];
+    const last=groups[groups.length-1];
+    groups[0]=last.concat(first);
+    groups.pop();
+  }
 
   for(const group of groups){
-    const start=group[0];
-    const end=group[group.length-1];
-    const center=((start+end+1)/2)*SECTOR_SIZE;
-    const arc=group.length*SECTOR_SIZE;
-    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
+    const sortedGroup=[...group].sort((a,b)=>a-b);
+    const first=sortedGroup[0];
+    const len=sortedGroup.length;
+    const center=((first+len/2)%SECTORS)*SECTOR_SIZE;
+    const arc=len*SECTOR_SIZE;
+    obs.push({type:'block',angle:center,arcSize:arc,z:zOffset,depth,spd:CFG.obsSpeed,passed:false,sectors:[...sortedGroup]});
   }
 }
 
