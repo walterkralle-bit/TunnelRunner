@@ -10,7 +10,7 @@
   html,body{height:100%;min-height:100%;}
   body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom);font-family:'Orbitron',monospace}
   #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:calc(100dvh - env(safe-area-inset-bottom));padding-top:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
-  #gameShell{position:relative;margin-bottom:12px;}
+  #gameShell{position:relative;}
   canvas{width:400px;height:440px;display:block;flex:0 0 auto}
   #ctrl{width:400px;height:300px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative;flex:0 0 auto}
   #whl{width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
@@ -85,7 +85,7 @@
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
-const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
+const W=cv.width,H=cv.height,CX=W/2,CY=H*.47;
 const OR=360,IR=45;
 
 // ==================== GAME CONFIG ====================
