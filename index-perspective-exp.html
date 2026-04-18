@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tunnel Runner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;font-family:'Orbitron',monospace}
+  #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:100vh}
+  #gameTopBar{width:400px;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:6px 10px;background:linear-gradient(180deg,#09111f,#0a1018);border-bottom:1px solid rgba(255,255,255,.06)}
+  canvas{width:400px;height:440px;display:block}
+  #ctrl{width:400px;height:320px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative}
+  #whl{width:280px;height:280px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
+  #whlOut{position:absolute;top:-16px;left:-16px;right:-16px;bottom:-16px;border-radius:50%;background:linear-gradient(135deg,#666,#333 40%,#555 60%,#444);z-index:-1;box-shadow:inset 0 2px 6px rgba(255,255,255,.15),0 6px 20px rgba(0,0,0,.7)}
+  #whl::before{content:'';position:absolute;top:12px;left:12px;right:12px;bottom:12px;border-radius:50%;border:2px solid rgba(200,100,255,.25);pointer-events:none}
+  .ch{position:absolute;pointer-events:none;background:rgba(200,100,255,.2)}
+  .ch.h{top:50%;left:12%;width:76%;height:2px;transform:translateY(-50%)}
+  .ch.v{top:12%;left:50%;width:2px;height:76%;transform:translateX(-50%)}
+  .tk{position:absolute;background:rgba(255,255,255,.6);pointer-events:none}
+  .tk.t{top:6px;left:50%;width:2px;height:14px;transform:translateX(-50%)}
+  .tk.b{bottom:6px;left:50%;width:2px;height:14px;transform:translateX(-50%)}
+  .tk.l{left:6px;top:50%;width:14px;height:2px;transform:translateY(-50%)}
+  .tk.r{right:6px;top:50%;width:14px;height:2px;transform:translateY(-50%)}
+  #jmp{position:absolute;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f0c0ff,#d080f0 40%,#a040c0);border:3px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(200,100,255,.6);top:50%;left:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
+  #jmp:active{transform:translate(-50%,-50%) scale(.88)}
+  #posInd{position:absolute;width:6px;height:32px;background:#fff;border-radius:3px;pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.9),0 0 16px rgba(200,100,255,.6);z-index:5;transform-origin:center 130px}
+  #hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
+  .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
+  .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  #pauseBtn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  #pauseBtn:hover{background:rgba(18,38,78,.95)}
+  /* hint text */
+  #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
+  #hint.show{opacity:1}
+  #ov{position:absolute;top:0;left:0;width:400px;height:440px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(5,5,20,.9);z-index:20;backdrop-filter:blur(4px)}
+  #ov.hidden{display:none}
+  #ov h1{font-size:26px;font-weight:900;color:#4ac;text-shadow:0 0 20px rgba(60,180,220,.7);margin-bottom:6px;letter-spacing:3px}
+  #ov h2{font-size:18px;font-weight:700;color:#f46;margin-bottom:10px}
+  #ov p{font-family:'Rajdhani',sans-serif;color:#99a;font-size:14px;margin-bottom:5px;text-align:center;padding:0 20px}
+  .fs{font-family:'Orbitron',monospace;color:#ffd700;font-size:24px;margin:14px 0;text-shadow:0 0 12px rgba(255,200,0,.5)}
+  .btn{margin-top:18px;padding:12px 36px;font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#0088cc,#005588);border:2px solid rgba(0,180,255,.5);border-radius:30px;cursor:pointer;letter-spacing:3px;box-shadow:0 0 16px rgba(0,140,220,.3)}
+  .btn:hover{box-shadow:0 0 26px rgba(0,180,255,.6);transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="gameTopBar"><button id="pauseBtn" aria-label="Pause">❚❚</button></div>
+  <div style="position:relative">
+    <canvas id="c" width="800" height="880"></canvas>
+    <div id="hud"><div class="hs" id="sc">0</div><div class="hr" id="rc">Record: 0</div><div class="hh" id="hrt">🪙 0</div></div>
+    <div id="hint"></div>
+    <div id="ov">
+      <h1>TUNNEL RUNNER</h1>
+      <p>Steuerrad drehen = Position im Tunnel</p>
+      <p>Mitte / Leertaste = Springen</p>
+      <p style="color:#0cf">🔵 Cyan-Ring → Springen!</p>
+      <p style="color:#c63">🟤 Braune Blöcke → Ausweichen!</p>
+      <p style="color:#fd0">🪙 Münzen → Einsammeln!</p>
+      <button class="btn" id="go">START</button>
+    </div>
+  </div>
+  <div id="ctrl">
+    <div style="position:relative"><div id="whlOut"></div>
+      <div id="whl">
+        <div class="ch h"></div><div class="ch v"></div>
+        <div class="tk t"></div><div class="tk b"></div><div class="tk l"></div><div class="tk r"></div>
+        <div id="jmp"></div>
+      </div>
+    </div>
+    <div id="posInd"></div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('c'),cx=cv.getContext('2d');
+const pauseBtn=document.getElementById('pauseBtn');
+const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
+const OR=360,IR=45;
+const CAMERA_Z=0.18;
+const FAR_Z=1.08;
+const PERSPECTIVE_GAMMA=0.92;
+
+// ==================== GAME CONFIG ====================
+const CFG={
+  playerZ:.82,
+  obsSpeed:.00355,
+  jumpDur:32,
+  jumpHeight:.25,
+  steerSmooth:.105,
+  steerMax:.095,
+  graceTime:150,
+  spawnStart:118,
+  spawnMin:46,
+  rampSpeed:.00012,
+};
+
+// ==================== STATE ====================
+let run=false,over=false,paused=false,sc=0,hi=0,lives=1,spd=1,dist=0,inv=0,fc=0,coinCount=0;
+let pAng=Math.PI/2,jumping=false,jf=0,wspin=0;
+let sAng=Math.PI/2,drag=false;
+let obs=[],cns=[],parts=[];
+let spT=0,cnT=0;
+let spawnPhase=0;
+let coinModeTimer=0;
+let coinCollectCooldown=0;
+
+// The tunnel is divided into 8 equal SECTORS for collision
+// This makes collision grid-based and 100% predictable
+const SECTORS=8;
+const SECTOR_SIZE=Math.PI*2/SECTORS;
+
+function getSector(angle){
+  let a=((angle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
+  return Math.floor(a/SECTOR_SIZE);
+}
+
+function z2r(z){
+  const clamped=Math.max(0,Math.min(FAR_Z,z));
+  const t=clamped/FAR_Z;
+  const invNear=1/(CAMERA_Z+t);
+  const invFar=1/(CAMERA_Z+1);
+  const norm=(invNear-invFar)/((1/CAMERA_Z)-invFar);
+  const shaped=Math.pow(Math.max(0,Math.min(1,norm)),PERSPECTIVE_GAMMA);
+  return IR+(OR-IR)*shaped;
+}
+
+// ==================== TUNNEL ====================
+const NBANDS=12,BSPC=.11;
+const NLONG=24; // longitudinal panel lines
+let bands=[];
+function initBands(){bands=[];for(let i=0;i<NBANDS;i++)bands.push({z:i*BSPC,id:i})}
+function updateBands(dt){
+  const s=dt*spd;
+  for(let b of bands)b.z+=CFG.obsSpeed*s;
+  for(let b of bands)if(b.z>1.15){let m=1;for(let o of bands)if(o.z<m)m=o.z;b.z=m-BSPC;b.id--}
+}
+
+function getTunnelHue(){
+  // Color shifts over time: blue(210) → teal(180) → green(140) → purple(280) → red(0) → blue again
+  const cycle=dist*.003; // slow color shift
+  const hues=[210,180,140,280,340,210];
+  const idx=Math.floor(cycle)%hues.length;
+  const next=(idx+1)%hues.length;
+  const t=cycle%1;
+  // Lerp between hues
+  let h0=hues[idx],h1=hues[next];
+  if(Math.abs(h1-h0)>180){if(h1>h0)h0+=360;else h1+=360}
+  return((h0+(h1-h0)*t)%360);
+}
+
+function drawTunnel(){
+  const tunnelHue=getTunnelHue();
+  const bgR=Math.floor(Math.max(0,Math.cos((tunnelHue-210)*Math.PI/180)*.03+.02)*255);
+  const bgG=Math.floor(Math.max(0,Math.cos((tunnelHue-150)*Math.PI/180)*.04+.03)*255);
+  const bgB=Math.floor(Math.max(0,Math.cos((tunnelHue-270)*Math.PI/180)*.06+.08)*255);
+  cx.fillStyle=`rgb(${bgR},${bgG},${bgB})`;cx.fillRect(0,0,W,H);
+
+  const sb=[...bands].sort((a,b)=>a.z-b.z);
+
+  for(let i=0;i<sb.length-1;i++){
+    const b=sb[i],n=sb[i+1];
+    if(b.z<-.01||b.z>1.08||n.z<-.01)continue;
+    const zNear=Math.max(0,b.z);
+    const zFar=Math.min(1.08,n.z);
+    const rOuter=z2r(zNear);
+    const rInner=z2r(zFar);
+    if(rOuter-rInner<.75)continue;
+
+    const isDark=b.id%2===0;
+    const depthT=Math.max(0,Math.min(1,zNear/FAR_Z));
+    const depthFade=.25+.75*(1-depthT);
+
+    for(let j=0;j<NLONG;j++){
+      const a0=(j/NLONG)*Math.PI*2;
+      const a1=((j+1)/NLONG)*Math.PI*2;
+      const panelVar=((j%2)===0)?.03:-.03;
+      const baseLight=isDark?.26:.4;
+      const finalLight=(baseLight+panelVar)*depthFade;
+      const sat=42+finalLight*26;
+      const lum=Math.floor(8+finalLight*50);
+
+      cx.beginPath();
+      cx.arc(CX,CY,rOuter,a0,a1);
+      cx.arc(CX,CY,rInner,a1,a0,true);
+      cx.closePath();
+      cx.fillStyle=`hsl(${tunnelHue},${sat}%,${lum}%)`;
+      cx.fill();
+    }
+
+    cx.beginPath();cx.arc(CX,CY,rInner,0,Math.PI*2);
+    cx.strokeStyle=`rgba(8,18,40,${.2+.55*(1-depthT)})`;
+    cx.lineWidth=1.2+(1-depthT)*2.2;
+    cx.stroke();
+  }
+
+  for(let i=0;i<NLONG;i++){
+    const a=(i/NLONG)*Math.PI*2;
+    const ix=CX+Math.cos(a)*IR, iy=CY+Math.sin(a)*IR;
+    const ox=CX+Math.cos(a)*OR, oy=CY+Math.sin(a)*OR;
+    const isMajor=i%4===0;
+    cx.beginPath();cx.moveTo(ix,iy);cx.lineTo(ox,oy);
+    if(isMajor){
+      cx.strokeStyle='rgba(30,60,110,.62)';cx.lineWidth=2.5;
+    } else {
+      cx.strokeStyle='rgba(18,40,80,.42)';cx.lineWidth=1.35;
+    }
+    cx.stroke();
+  }
+
+  const vg=cx.createRadialGradient(CX,CY,0,CX,CY,IR+12);
+  vg.addColorStop(0,'#000');
+  vg.addColorStop(.72,'#000');
+  vg.addColorStop(1,'#0a1530');
+  cx.beginPath();cx.arc(CX,CY,IR+12,0,Math.PI*2);cx.fillStyle=vg;cx.fill();
+}
+
+// ==================== PLAYER ====================
+function jOff(){return jumping?Math.sin((jf/CFG.jumpDur)*Math.PI)*CFG.jumpHeight:0}
+function pPos(){const jo=jOff(),r=z2r(CFG.playerZ-jo);return{x:CX+Math.cos(pAng)*r,y:CY+Math.sin(pAng)*r,r}}
+
+function drawPlayer(){
+  const p=pPos(),sz=18+CFG.playerZ*8;
+  
+  // Long trail going INTO the tunnel (fades toward center = depth)
+  // This is key for the "driving forward" feeling
+  for(let t=1;t<=6;t++){
+    const trailZ=CFG.playerZ-jOff()-.03*t;
+    if(trailZ<.05)break;
+    const tr=z2r(trailZ);
+    const tAlpha=.35-t*.05;
+    const tWidth=sz*(.6-t*.06);
+    if(tAlpha<=0||tWidth<=0)break;
+    cx.beginPath();cx.arc(CX,CY,tr,pAng-.08,pAng+.08);
+    cx.strokeStyle=`rgba(30,80,140,${tAlpha})`;cx.lineWidth=tWidth;cx.lineCap='round';cx.stroke();
+  }
+  
+  // Glow under wheel
+  const gl=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz*1.5);
+  gl.addColorStop(0,'rgba(0,160,255,.18)');gl.addColorStop(1,'rgba(0,60,150,0)');
+  cx.fillStyle=gl;cx.beginPath();cx.arc(p.x,p.y,sz*1.5,0,Math.PI*2);cx.fill();
+  
+  cx.save();cx.translate(p.x,p.y);
+  if(inv>0&&Math.floor(inv/3)%2===0)cx.globalAlpha=.3;
+  cx.rotate(wspin);
+  // Tire
+  cx.beginPath();cx.arc(0,0,sz,0,Math.PI*2);cx.fillStyle='#0d1e35';cx.fill();cx.strokeStyle='#00aadd';cx.lineWidth=2.5;cx.stroke();
+  // Treads
+  for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;cx.beginPath();cx.moveTo(Math.cos(a)*sz*.95,Math.sin(a)*sz*.95);cx.lineTo(Math.cos(a)*sz*.75,Math.sin(a)*sz*.75);cx.strokeStyle='rgba(0,140,200,.35)';cx.lineWidth=2.5;cx.stroke()}
+  // Spokes
+  for(let i=0;i<4;i++){const a=(i/4)*Math.PI*2;cx.beginPath();cx.moveTo(0,0);cx.lineTo(Math.cos(a)*sz*.65,Math.sin(a)*sz*.65);cx.strokeStyle='#0088bb';cx.lineWidth=2.5;cx.stroke()}
+  // Hub
+  cx.beginPath();cx.arc(0,0,sz*.22,0,Math.PI*2);cx.fillStyle='#33ccee';cx.fill();
+  cx.restore();
+}
+
+let lastMilestone=0;
+let sparks=[];
+
+function updatePlayer(dt){
+  let d=sAng-pAng;d=Math.atan2(Math.sin(d),Math.cos(d));
+  pAng+=Math.sign(d)*Math.min(Math.abs(d)*CFG.steerSmooth,CFG.steerMax)*dt;
+  if(jumping){jf+=dt;if(jf>=CFG.jumpDur){jumping=false;jf=0}}
+  if(inv>0)inv-=dt;
+  wspin+=.08*spd*dt;
+  
+  // Spawn sparks when on the wall (not jumping)
+  if(!jumping&&run&&Math.random()<.3*spd){
+    const p=pPos();
+    sparks.push({
+      x:p.x,y:p.y,
+      vx:(Math.random()-.5)*3+Math.cos(pAng+Math.PI)*2,
+      vy:(Math.random()-.5)*3+Math.sin(pAng+Math.PI)*2,
+      life:1,
+      size:1+Math.random()*2
+    });
+  }
+  
+  // Milestone check
+  const milestones=[5000,10000,15000,20000,25000,30000,40000,50000,75000,100000];
+  for(let m of milestones){
+    if(sc>=m&&lastMilestone<m){
+      lastMilestone=m;
+      addFloat(CX,CY+80,m>=50000?'INCREDIBLE!':m>=25000?'AMAZING!':m>=10000?'GREAT!':'NICE!',
+        m>=50000?'#ff44ff':m>=25000?'#44ffff':m>=10000?'#44ff44':'#ffff44');
+      addFloat(CX,CY+110,m.toLocaleString()+' PTS','#ffffff');
+    }
+  }
+}
+
+function updateSparks(dt){
+  for(let s of sparks){s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=.06*dt}
+  sparks=sparks.filter(s=>s.life>0);
+}
+
+function drawSparks(){
+  for(let s of sparks){
+    cx.globalAlpha=s.life;
+    cx.beginPath();cx.arc(s.x,s.y,s.size*s.life,0,Math.PI*2);
+    cx.fillStyle=`hsl(${30+Math.random()*30},100%,${60+Math.random()*30}%)`;
+    cx.fill();
+  }
+  cx.globalAlpha=1;
+}
+
+function doJump(){if(!jumping&&run){jumping=true;jf=0}}
+
+// ==================== OBSTACLES ====================
+let lastCoinSpawnZ=0;
+
+function spawnGroup(){
+  const diff=Math.min(1,dist/5000);
+  const phase=spawnPhase%6;
+  spawnPhase++;
+
+  if(phase===0){
+    const blocked=spawnBlockSet(diff*.85);
+    if(Math.random()<.75)spawnCoinsInGap(blocked);
+    return;
+  }
+  if(phase===1){
+    if(Math.random()<.65){
+      spawnRingObs();
+    } else {
+      const blocked=spawnBlockSet(diff*.9);
+      if(Math.random()<.5)spawnCoinsInGap(blocked);
+    }
+    return;
+  }
+  if(phase===2){
+    const blocked=spawnBlockSet(diff);
+    if(Math.random()<.35)spawnCoinsInGap(blocked);
+    return;
+  }
+  if(phase===3){
+    if(diff>.22){
+      spawnComboRing(diff);
+    } else {
+      spawnRingObs();
+    }
+    return;
+  }
+  if(phase===4){
+    if(Math.random()<.9)spawnCoins();
+    return;
+  }
+
+  const blocked=spawnBlockSet(diff*.95);
+  if(Math.random()<.55)spawnCoinsInGap(blocked);
+}
+
+function spawnBlockSet(diff){
+  const minBlock=1,maxBlock=Math.floor(1+diff*5);
+  const numBlock=minBlock+Math.floor(Math.random()*(maxBlock-minBlock+1));
+  const pSec=getSector(pAng);
+  let available=[];
+  for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
+  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
+  const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
+  pushMergedBlocks(blocked,.09+Math.random()*.04);
+  return blocked;
+}
+
+function spawnRingObs(){
+  obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
+}
+
+function pushMergedBlocks(sectors, depth=.08){
+  const sorted=[...sectors].sort((a,b)=>a-b);
+  const groups=[];
+  let current=[];
+  for(const s of sorted){
+    if(!current.length||s===current[current.length-1]+1){
+      current.push(s);
+    } else {
+      groups.push(current);
+      current=[s];
+    }
+  }
+  if(current.length)groups.push(current);
+
+  for(const group of groups){
+    const start=group[0];
+    const end=group[group.length-1];
+    const center=((start+end+1)/2)*SECTOR_SIZE;
+    const arc=group.length*SECTOR_SIZE;
+    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
+  }
+}
+
+function spawnComboRing(diff){
+  // Full ring: mostly brown (dodge), 1-2 sectors blue (jumpable)
+  const numBlue=diff>.6?1:1+Math.floor(Math.random()*2);
+  let all=[];for(let i=0;i<SECTORS;i++)all.push(i);
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
+  const blue=all.slice(0,numBlue);
+  const brown=[];
+  for(let i=0;i<SECTORS;i++){
+    const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
+    if(blue.includes(i)){
+      obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
+    } else {
+      brown.push(i);
+    }
+  }
+  pushMergedBlocks(brown,.08);
+}
+
+function updateObs(dt){
+  const s=dt*spd;
+  for(let o of obs)o.z+=o.spd*s;
+  obs=obs.filter(o=>o.z<1.15);
+  if(inv>0)return;
+  
+  const isJump=jOff()>.06;
+  const pSec=getSector(pAng);
+  
+  for(let o of obs){
+    if(o.passed)continue;
+    const back=o.z+(o.depth||.05);
+    // Past player?
+    if(o.z>CFG.playerZ+.01){o.passed=true;continue}
+    // In range?
+    if(!(o.z<=CFG.playerZ+.005&&back>=CFG.playerZ-.005))continue;
+    
+    if(o.type==='ring'){
+      if(isJump){o.passed=true;continue}
+      o.passed=true;die();return;
+    }
+    if(o.type==='block'){
+      if(o.sectors&&o.sectors.includes(pSec)){
+        let ad=Math.abs(pAng-o.angle);
+        ad=Math.min(ad,Math.PI*2-ad);
+        if(ad<o.arcSize/2-.08){
+          o.passed=true;die();return;
+        }
+      }
+      if(back>CFG.playerZ)o.passed=true;
+    }
+    if(o.type==='ring_segment'){
+      // Blue segment: can be jumped over, kills if not jumping and in this sector
+      if(o.sectors&&o.sectors.includes(pSec)){
+        let ad=Math.abs(pAng-o.angle);
+        ad=Math.min(ad,Math.PI*2-ad);
+        if(ad<o.arcSize/2-.08){
+          if(isJump){o.passed=true;continue}
+          o.passed=true;die();return;
+        }
+      }
+      if(back>CFG.playerZ)o.passed=true;
+    }
+  }
+}
+
+// (drawObs replaced by drawScene/drawSingleObs above)
+
+// ==================== COINS ====================
+function spawnCoins(){
+  // Keep coin moments readable, avoid clutter during obstacle-heavy sections
+  const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
+  if(activeCoinCount>0||coinModeTimer>0)return;
+
+  // Reintroduce a gentle spiral, but only if the current near field is clean
+  const nearObs=obs.filter(o=>o.z<.7);
+  if(nearObs.length>0)return;
+
+  const safeSector=getSector(pAng);
+  const safeAngle=safeSector*SECTOR_SIZE+SECTOR_SIZE/2;
+  const start=safeAngle+(Math.random()<.5?-1:1)*.035;
+  const turns=.28+Math.random()*.06;
+  const dir=Math.random()<.5?1:-1;
+  const n=18;
+  for(let i=0;i<n;i++){
+    const t=i/(n-1);
+    const angle=start+dir*(turns*Math.PI*2)*t;
+    cns.push({
+      angle,
+      z:-.05-.06*i,
+      collected:false
+    });
+  }
+  coinModeTimer=150;
+}
+
+function spawnCoinsInGap(blockedSectors){
+  // Place a neat line of coins centered in the free gap
+  const freeSectors=[];
+  for(let i=0;i<SECTORS;i++){
+    if(!blockedSectors.includes(i))freeSectors.push(i);
+  }
+  if(freeSectors.length===0)return;
+  
+  // Find the largest contiguous free gap
+  let bestStart=-1,bestLen=0,curStart=0,curLen=0;
+  // Check all sectors including wrap-around
+  const ext=[...freeSectors];
+  for(let i=0;i<SECTORS;i++){
+    if(freeSectors.includes(i)){
+      if(curLen===0)curStart=i;
+      curLen++;
+      if(curLen>bestLen){bestLen=curLen;bestStart=curStart}
+    } else {
+      curLen=0;
+    }
+  }
+  
+  if(bestStart<0)return;
+  
+  // Center of the gap
+  const gapCenter=(bestStart+bestLen/2)*SECTOR_SIZE+SECTOR_SIZE/2;
+  
+  // Place 3-5 coins in a straight line along the gap, evenly spaced in depth
+  const n=3; // cleaner reward line in the safe gap
+  for(let i=0;i<n;i++){
+    cns.push({
+      angle:gapCenter, // all at the same angle = neat line
+      z:-.02-.04*i, // spread further apart in depth
+      collected:false
+    });
+  }
+}
+
+function updateCoins(dt){
+  const s=dt*spd;
+  for(let c of cns)c.z+=CFG.obsSpeed*s;
+  cns=cns.filter(c=>c.z<1.15&&!(c.missed&&(c.missedTime||0)>1.2));
+  if(coinModeTimer>0)coinModeTimer-=dt;
+  if(coinCollectCooldown>0)coinCollectCooldown-=dt;
+
+  // Cannot collect coins AT ALL during a jump
+  if(jumping)return;
+
+  // Collect at most one coin, then force a short cooldown so nearby spiral coins do not chain-trigger
+  let bestCoin=null;
+  let bestScore=999;
+
+  for(let c of cns){
+    if(c.collected||c.missed)continue;
+
+    const dz=Math.abs(c.z-CFG.playerZ);
+    let ad=Math.abs(pAng-c.angle);ad=Math.min(ad,Math.PI*2-ad);
+
+    if(coinCollectCooldown<=0&&dz<.022&&ad<.11){
+      const score=dz*3+ad;
+      if(score<bestScore){bestScore=score;bestCoin=c}
+    }
+
+    // Mark as missed if it passed the player
+    if(c.z>CFG.playerZ+.012&&!c.collected){
+      c.missed=true;c.missedTime=0;
+      const cr=z2r(c.z);
+      addFloat(CX+Math.cos(c.angle)*cr,CY+Math.sin(c.angle)*cr,'MISS','#ff4444');
+    }
+  }
+
+  if(bestCoin){
+    bestCoin.collected=true;
+    sc+=100;coinCount++;spawnParts(bestCoin.angle,bestCoin.z);
+    const cr=z2r(bestCoin.z);
+    addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+100','#ffdd00');
+    coinCollectCooldown=3;
+  }
+}
+
+// (drawCoins replaced by drawScene/drawSingleCoin above)
+
+// ==================== FLOATING TEXTS (for coin feedback) ====================
+let floatTexts=[];
+function addFloat(x,y,text,color){floatTexts.push({x,y,text,color,life:1,vy:-2.5})}
+function updateFloats(dt){for(let f of floatTexts){f.y+=f.vy*dt;f.life-=.025*dt}floatTexts=floatTexts.filter(f=>f.life>0)}
+function drawFloats(){
+  cx.textAlign='center';cx.textBaseline='middle';
+  for(let f of floatTexts){
+    cx.globalAlpha=f.life;
+    cx.font=`bold ${Math.floor(18+f.life*8)}px Rajdhani,sans-serif`;
+    // Shadow
+    cx.fillStyle='#000';cx.fillText(f.text,f.x+1,f.y+1);
+    // Text
+    cx.fillStyle=f.color;cx.fillText(f.text,f.x,f.y);
+  }
+  cx.globalAlpha=1;
+}
+
+// ==================== PARTICLES ====================
+function spawnParts(a,z){
+  const r=z2r(z),px=CX+Math.cos(a)*r,py=CY+Math.sin(a)*r;
+  for(let i=0;i<5;i++)parts.push({x:px,y:py,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:1,
+    color:`hsl(${40+Math.random()*20},100%,${55+Math.random()*30}%)`});
+}
+function updateParts(dt){for(let p of parts){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=.04*dt}parts=parts.filter(p=>p.life>0)}
+function drawParts(){for(let p of parts){cx.globalAlpha=p.life;cx.beginPath();cx.arc(p.x,p.y,3*p.life,0,Math.PI*2);cx.fillStyle=p.color;cx.fill()}cx.globalAlpha=1}
+
+// ==================== HINT TEXT ====================
+const hintEl=document.getElementById('hint');
+let hintTimer=0;
+function showHint(txt){hintEl.textContent=txt;hintEl.classList.add('show');hintTimer=90}
+function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.classList.remove('show')}}
+
+// ==================== GAME FLOW ====================
+function die(){lives--;if(lives<=0)endGame();else inv=90}
+const ov=document.getElementById('ov');
+document.getElementById('go').addEventListener('click',startGame);
+
+function startGame(){
+  run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
+  pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;
+  initBands();
+  document.getElementById('whl').style.transform='rotate(0deg)';
+  ov.classList.add('hidden');updHUD();
+}
+
+function endGame(){
+  run=false;paused=false;over=true;if(sc>hi)hi=sc;
+  ov.classList.remove('hidden');
+  ov.innerHTML=`<h2>GAME OVER</h2><div class="fs">${sc.toLocaleString()}</div><p>🪙 ${coinCount} Münzen</p><p>Record: ${hi.toLocaleString()}</p><button class="btn" onclick="startGame()">NOCHMAL</button>`;
+}
+
+function showPauseMenu(){
+  paused=true;
+  ov.classList.remove('hidden');
+  ov.innerHTML=`<div style="margin-top:auto;width:100%;padding:0 0 28px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><h2 style="margin-bottom:18px;color:#9fd8ff">PAUSE</h2><div style="display:flex;gap:12px"><button class="btn" onclick="resumeGame()">FORTFAHREN</button><button class="btn" onclick="endGame()">ENDE</button></div></div>`;
+}
+
+function resumeGame(){
+  if(!run)return;
+  paused=false;
+  ov.classList.add('hidden');
+}
+
+function togglePause(){
+  if(!run||over)return;
+  if(paused)resumeGame();
+  else showPauseMenu();
+}
+
+function updHUD(){
+  document.getElementById('sc').textContent=sc.toLocaleString();
+  document.getElementById('rc').textContent=`Record: ${hi.toLocaleString()}`;
+  document.getElementById('hrt').textContent='🪙 '+coinCount;
+  // Position indicator on steering wheel - matches tunnel angle
+  const posEl=document.getElementById('posInd');
+  if(posEl){
+    const ctrlEl=document.getElementById('ctrl');
+    const ctrlRect=ctrlEl.getBoundingClientRect();
+    const centerX=ctrlRect.width/2;
+    const centerY=ctrlRect.height/2;
+    const indicatorR=120; // distance from center of control area
+    const ix=centerX+Math.cos(pAng)*indicatorR-3;
+    const iy=centerY+Math.sin(pAng)*indicatorR-16;
+    const deg=(pAng*180/Math.PI)+90;
+    posEl.style.left=ix+'px';
+    posEl.style.top=iy+'px';
+    posEl.style.transform=`rotate(${deg}deg)`;
+    posEl.style.transformOrigin='center center';
+  }
+}
+
+// ==================== CONTROLS ====================
+const whl=document.getElementById('whl'),jmpBtn=document.getElementById('jmp');
+function wC(){const r=whl.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
+function steer(cx,cy){const c=wC(),dx=cx-c.x,dy=cy-c.y;if(Math.sqrt(dx*dx+dy*dy)<25)return;sAng=Math.atan2(dy,dx);whl.style.transform=`rotate(${(sAng*180/Math.PI)-90}deg)`}
+whl.addEventListener('mousedown',e=>{const c=wC();if(Math.sqrt((e.clientX-c.x)**2+(e.clientY-c.y)**2)<25)return;drag=true;steer(e.clientX,e.clientY)});
+document.addEventListener('mousemove',e=>{if(drag)steer(e.clientX,e.clientY)});
+document.addEventListener('mouseup',()=>{drag=false});
+whl.addEventListener('touchstart',e=>{const t=e.touches[0],c=wC();if(Math.sqrt((t.clientX-c.x)**2+(t.clientY-c.y)**2)<25)return;drag=true;steer(t.clientX,t.clientY);e.preventDefault()},{passive:false});
+whl.addEventListener('touchmove',e=>{if(drag)steer(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault()},{passive:false});
+whl.addEventListener('touchend',()=>{drag=false});
+jmpBtn.addEventListener('mousedown',e=>{e.stopPropagation();doJump()});
+jmpBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();doJump()});
+pauseBtn.addEventListener('click',e=>{e.preventDefault();togglePause()});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Escape'){e.preventDefault();togglePause();return}
+  if(e.code==='Space'){e.preventDefault();if(!paused)doJump()}
+});
+
+// ==================== GAME LOOP ====================
+let lastT=performance.now();
+let firstBlockShown=false,firstRingShown=false;
+
+function loop(ts){
+  const dt=Math.min((ts-lastT)/16.67,3);lastT=ts;
+  if(run&&!paused){
+    fc+=dt;dist+=spd*dt;sc+=Math.floor(spd*dt*2);
+    spd=1+dist*CFG.rampSpeed;
+    
+    // Spawning
+    spT+=dt;
+    if(dist>CFG.graceTime){
+      const rate=Math.max(CFG.spawnMin,CFG.spawnStart-dist*.008);
+      if(spT>rate){
+        spT=0;
+        spawnGroup();
+      }
+    }
+    // Coins — spawn in quiet moments
+    cnT+=dt;
+    if(cnT>118&&dist>140&&coinModeTimer<=0){cnT=0;spawnCoins()}
+    
+    updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
+  }
+  drawTunnel();drawSceneSplit();drawSparks();drawParts();drawFloats();
+  requestAnimationFrame(loop);
+}
+
+// Split scene drawing: items behind player → player → items at/in-front of player
+// This creates the 3D effect where the ring partially covers the wheel during a jump
+function drawSceneSplit(){
+  const items=[];
+  for(let o of obs){if(o.z>=.05)items.push({type:'obs',obj:o,z:o.z})}
+  for(let c of cns){if(!c.collected&&c.z>=.05)items.push({type:'coin',obj:c,z:c.z})}
+  items.sort((a,b)=>a.z-b.z);
+  
+  const playerDepth=CFG.playerZ;
+  // Threshold: items "at" the player if within this range
+  const nearThreshold=playerDepth-.03;
+  
+  // 1. Draw items BEHIND player (far away)
+  for(let item of items){
+    if(item.z>=nearThreshold)continue;
+    if(item.type==='obs')drawSingleObs(item.obj);
+    else drawSingleCoin(item.obj);
+  }
+  
+  // 2. Draw player
+  drawPlayer();
+  
+  // 3. Draw items AT or IN FRONT of player (these will cover the wheel when jumping over)
+  for(let item of items){
+    if(item.z<nearThreshold)continue;
+    if(item.type==='obs')drawSingleObs(item.obj);
+    else drawSingleCoin(item.obj);
+  }
+}
+
+function drawSingleObs(o){
+  if(o.z<.04)return;
+  
+  // Both radii calculated through z2r — thickness grows with perspective naturally
+  // Blocks have large z-depth, rings have medium z-depth
+  const blockDepth=.14; // z-space depth for blocks (massive walls)
+  const ringDepth=.08;  // z-space depth for rings
+  const zDepth=o.type==='block'?blockDepth:ringDepth;
+  
+  const rf=z2r(o.z);
+  const rb=z2r(Math.min(1.1,o.z+zDepth));
+  const thickness=rb-rf;
+  
+  if(rf<10||thickness<2)return;
+  const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
+  if(fade<.01)return;
+  cx.globalAlpha=fade;
+  
+  if(o.type==='ring'){
+    // === MASSIVE 3D RING ===
+    // Back face (deep shadow)
+    cx.beginPath();cx.arc(CX,CY,rb,0,Math.PI*2);cx.arc(CX,CY,rf,0,Math.PI*2,true);
+    cx.fillStyle='#044050';cx.fill();
+    
+    // Middle section
+    const r1=rf+thickness*.3, r2=rf+thickness*.7;
+    cx.beginPath();cx.arc(CX,CY,r2,0,Math.PI*2);cx.arc(CX,CY,r1,0,Math.PI*2,true);
+    cx.fillStyle='#088898';cx.fill();
+    
+    // Front face (bright)
+    cx.beginPath();cx.arc(CX,CY,rb,0,Math.PI*2);cx.arc(CX,CY,r2,0,Math.PI*2,true);
+    cx.fillStyle='#0cc8dd';cx.fill();
+    
+    // Bright outer edge
+    cx.beginPath();cx.arc(CX,CY,rb,0,Math.PI*2);
+    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2,thickness*.08);cx.stroke();
+    
+    // Inner dark edge
+    cx.beginPath();cx.arc(CX,CY,rf,0,Math.PI*2);
+    cx.strokeStyle='#033040';cx.lineWidth=Math.max(1.5,thickness*.05);cx.stroke();
+    
+    // Highlight stripe
+    cx.beginPath();cx.arc(CX,CY,rb-thickness*.15,0,Math.PI*2);
+    cx.strokeStyle='rgba(150,240,255,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
+  }
+  
+  if(o.type==='block'){
+    const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
+    
+    // === MASSIVE 3D BLOCK ===
+    // Layer 1: BACK FACE (darkest, the far side disappearing into tunnel)
+    const backThick=Math.max(2,thickness*.12);
+    cx.beginPath();
+    cx.arc(CX,CY,rf+backThick,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
+    cx.fillStyle='#2a1005';cx.fill();
+    
+    // Layer 2: BODY — three bands for depth gradient
+    // Dark back third
+    const t1=rf+thickness*.33, t2=rf+thickness*.66;
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#6a2a10';cx.fill();
+    // Medium middle third
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#8a3c18';cx.fill();
+    // Bright front third
+    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#b85828';cx.fill();
+    
+    // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
+    cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
+    cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
+    
+    // Layer 4: BACK EDGE — dark
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
+    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
+    
+    // Layer 5: SIDE WALLS (visible edges of the block)
+    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
+    if((o.sectors?.length||1)===1){
+      for(const edgeA of[sa,ea]){
+        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+        // Dark side fill
+        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+        // Bright edge highlight at front corner
+        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
+        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
+        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+      }
+    }
+    
+    // Layer 6: Surface detail lines for panel look
+    cx.beginPath();cx.arc(CX,CY,t1,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.4)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,t2,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    
+    // Layer 7: Front highlight for 3D pop
+    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
+    cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
+  }
+  
+  if(o.type==='ring_segment'){
+    // Blue jumpable segment — keep thickness, shift outward so its outer edge matches brown
+    const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
+    const blueThickness=thickness*.72;
+    const blueOuter=rb;
+    const blueInner=rb-blueThickness;
+    const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
+    // Back / inner face
+    cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
+    cx.fillStyle='#043848';cx.fill();
+    // Body layers from outer edge inward
+    cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#0bbccc';cx.fill();
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#088898';cx.fill();
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
+    cx.fillStyle='#055868';cx.fill();
+    // Outer/front edge aligned with brown underside
+    cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
+    cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
+    // Inner/top edge moved outward, but thickness preserved
+    cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
+    cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
+    // Sides
+    for(const edgeA of[sa,ea]){
+      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
+      cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
+    }
+  }
+  cx.globalAlpha=1;
+}
+
+function drawSingleCoin(c){
+  if(c.collected)return;
+  const r=z2r(c.z);
+  // Perspective-correct size matching z2r curve
+  const sz=2+Math.pow(Math.max(0,c.z),1.8)*20;
+  const x=CX+Math.cos(c.angle)*r,y=CY+Math.sin(c.angle)*r;
+  
+  if(c.missed){
+    // Missed coin: grey, fading out, shrinking
+    c.missedTime=(c.missedTime||0)+.03;
+    const fade=Math.max(0,1-c.missedTime);
+    if(fade<.01)return;
+    cx.globalAlpha=fade*.6;
+    const msz=sz*(1-c.missedTime*.5);
+    cx.beginPath();cx.arc(x,y,msz,0,Math.PI*2);
+    cx.fillStyle='#555';cx.fill();
+    cx.strokeStyle='#333';cx.lineWidth=1.5;cx.stroke();
+    // Red X
+    const xs=msz*.5;
+    cx.beginPath();cx.moveTo(x-xs,y-xs);cx.lineTo(x+xs,y+xs);
+    cx.moveTo(x+xs,y-xs);cx.lineTo(x-xs,y+xs);
+    cx.strokeStyle=`rgba(255,60,60,${fade})`;cx.lineWidth=2;cx.stroke();
+    cx.globalAlpha=1;
+    return;
+  }
+  
+  // Normal coin
+  cx.beginPath();cx.arc(x,y,sz+2,0,Math.PI*2);cx.strokeStyle='#0a1020';cx.lineWidth=3;cx.stroke();
+  cx.beginPath();cx.arc(x,y,sz,0,Math.PI*2);
+  const g=cx.createRadialGradient(x-sz*.2,y-sz*.2,0,x,y,sz);
+  g.addColorStop(0,'#ffe060');g.addColorStop(.6,'#cc9900');g.addColorStop(1,'#886600');
+  cx.fillStyle=g;cx.fill();
+  cx.beginPath();cx.arc(x,y,sz*.35,0,Math.PI*2);cx.fillStyle='#ddaa20';cx.fill();cx.strokeStyle='#aa8800';cx.lineWidth=1;cx.stroke();
+  cx.beginPath();cx.arc(x-sz*.18,y-sz*.18,sz*.2,0,Math.PI*2);cx.fillStyle='rgba(255,255,220,.5)';cx.fill();
+}
+initBands();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
