@@ -600,7 +600,7 @@ function updateCoins(dt){
     const coinSector=getSector(c.angle);
     const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.023&&ad<.082){
+    if(coinCollectCooldown<=0&&sameSector&&dz<.025&&ad<.092){
       const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
