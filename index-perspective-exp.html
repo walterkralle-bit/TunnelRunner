@@ -78,10 +78,6 @@ const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
 const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
 const OR=360,IR=45;
-const CAMERA_Z=0.18;
-const FAR_Z=1.08;
-const PERSPECTIVE_GAMMA=0.92;
-const OBSTACLE_NEAR_BOOST=0.22;
 
 // ==================== GAME CONFIG ====================
 const CFG={
@@ -117,25 +113,8 @@ function getSector(angle){
   return Math.floor(a/SECTOR_SIZE);
 }
 
-function depthCurve(z){
-  const clamped=Math.max(0,Math.min(FAR_Z,z));
-  const t=clamped/FAR_Z;
-  const invNear=1/(CAMERA_Z+t);
-  const invFar=1/(CAMERA_Z+1);
-  const norm=(invNear-invFar)/((1/CAMERA_Z)-invFar);
-  const shaped=Math.pow(Math.max(0,Math.min(1,norm)),PERSPECTIVE_GAMMA);
-  return shaped;
-}
-
-function obstacleDepthCurve(z){
-  const base=depthCurve(z);
-  const t=Math.max(0,Math.min(1,z/FAR_Z));
-  const boost=1+OBSTACLE_NEAR_BOOST*(1-t)*(1-t);
-  return Math.max(0,Math.min(1,base*boost));
-}
-
 function z2r(z){
-  return IR+(OR-IR)*depthCurve(z);
+  return IR+(OR-IR)*Math.pow(Math.max(0,z),1.8);
 }
 
 // ==================== TUNNEL ====================
@@ -164,66 +143,71 @@ function getTunnelHue(){
 
 function drawTunnel(){
   const tunnelHue=getTunnelHue();
+  // Background matches tunnel hue
   const bgR=Math.floor(Math.max(0,Math.cos((tunnelHue-210)*Math.PI/180)*.03+.02)*255);
   const bgG=Math.floor(Math.max(0,Math.cos((tunnelHue-150)*Math.PI/180)*.04+.03)*255);
   const bgB=Math.floor(Math.max(0,Math.cos((tunnelHue-270)*Math.PI/180)*.06+.08)*255);
   cx.fillStyle=`rgb(${bgR},${bgG},${bgB})`;cx.fillRect(0,0,W,H);
-
+  
   const sb=[...bands].sort((a,b)=>a.z-b.z);
-
+  
   for(let i=0;i<sb.length-1;i++){
     const b=sb[i],n=sb[i+1];
-    if(b.z<-.01||b.z>1.08||n.z<-.01)continue;
-    const zNear=Math.max(0,b.z);
-    const zFar=Math.min(1.08,n.z);
-    const rOuter=z2r(zNear);
-    const rInner=z2r(zFar);
-    if(rOuter-rInner<.75)continue;
-
+    if(b.z<-.01||b.z>1.06||n.z<-.01)continue;
+    const r0=z2r(Math.max(0,b.z)),r1=z2r(Math.min(1.06,n.z));
+    if(r1-r0<.5)continue;
+    
     const isDark=b.id%2===0;
-    const depthT=Math.max(0,Math.min(1,zNear/FAR_Z));
-    const depthFade=.25+.75*(1-depthT);
-
+    
     for(let j=0;j<NLONG;j++){
       const a0=(j/NLONG)*Math.PI*2;
       const a1=((j+1)/NLONG)*Math.PI*2;
+      
       const panelVar=((j%2)===0)?.03:-.03;
-      const baseLight=isDark?.26:.4;
-      const finalLight=(baseLight+panelVar)*depthFade;
-      const sat=42+finalLight*26;
-      const lum=Math.floor(8+finalLight*50);
-
+      const baseLight=isDark?.28:.42;
+      const light=baseLight+panelVar;
+      const depthFade=.4+Math.min(1,b.z)*.6;
+      const finalLight=light*depthFade;
+      
+      // Use tunnel hue for color
+      const sat=40+finalLight*30;
+      const lum=Math.floor(finalLight*45);
+      
       cx.beginPath();
-      cx.arc(CX,CY,rOuter,a0,a1);
-      cx.arc(CX,CY,rInner,a1,a0,true);
+      cx.arc(CX,CY,r1,a0,a1);
+      cx.arc(CX,CY,r0,a1,a0,true);
       cx.closePath();
       cx.fillStyle=`hsl(${tunnelHue},${sat}%,${lum}%)`;
       cx.fill();
     }
-
-    cx.beginPath();cx.arc(CX,CY,rInner,0,Math.PI*2);
-    cx.strokeStyle=`rgba(8,18,40,${.2+.55*(1-depthT)})`;
-    cx.lineWidth=1.2+(1-depthT)*2.2;
+    
+    // Ring edge lines (between bands) — subtle
+    cx.beginPath();cx.arc(CX,CY,r1,0,Math.PI*2);
+    cx.strokeStyle=`rgba(8,18,40,${.4+Math.min(1,n.z)*.4})`;
+    cx.lineWidth=1+Math.min(1,n.z)*1.5;
     cx.stroke();
   }
-
+  
+  // Longitudinal panel edge lines (structural beams)
   for(let i=0;i<NLONG;i++){
     const a=(i/NLONG)*Math.PI*2;
     const ix=CX+Math.cos(a)*IR, iy=CY+Math.sin(a)*IR;
     const ox=CX+Math.cos(a)*OR, oy=CY+Math.sin(a)*OR;
     const isMajor=i%4===0;
+    
     cx.beginPath();cx.moveTo(ix,iy);cx.lineTo(ox,oy);
     if(isMajor){
-      cx.strokeStyle='rgba(30,60,110,.62)';cx.lineWidth=2.5;
+      cx.strokeStyle='rgba(30,60,110,.6)';cx.lineWidth=2.5;
     } else {
-      cx.strokeStyle='rgba(18,40,80,.42)';cx.lineWidth=1.35;
+      cx.strokeStyle='rgba(18,40,80,.45)';cx.lineWidth=1.5;
     }
     cx.stroke();
   }
-
+  
+  // Vanishing point — dark with subtle blue rim
   const vg=cx.createRadialGradient(CX,CY,0,CX,CY,IR+12);
   vg.addColorStop(0,'#000');
-  vg.addColorStop(.72,'#000');
+  vg.addColorStop(.75,'#000');
   vg.addColorStop(1,'#0a1530');
   cx.beginPath();cx.arc(CX,CY,IR+12,0,Math.PI*2);cx.fillStyle=vg;cx.fill();
 }
@@ -421,11 +405,7 @@ function spawnComboRing(diff){
 
 function updateObs(dt){
   const s=dt*spd;
-  for(let o of obs){
-    const t=Math.max(0,Math.min(1,o.z/FAR_Z));
-    const perspectiveAccel=.72+.9*t;
-    o.z+=o.spd*s*perspectiveAccel;
-  }
+  for(let o of obs)o.z+=o.spd*s;
   obs=obs.filter(o=>o.z<1.15);
   if(inv>0)return;
   
@@ -759,10 +739,8 @@ function drawSingleObs(o){
   const ringDepth=.08;  // z-space depth for rings
   const zDepth=o.type==='block'?blockDepth:ringDepth;
   
-  const frontCurve=obstacleDepthCurve(o.z);
-  const backCurve=obstacleDepthCurve(Math.min(1.1,o.z+zDepth));
-  const rf=IR+(OR-IR)*frontCurve;
-  const rb=IR+(OR-IR)*backCurve;
+  const rf=z2r(o.z);
+  const rb=z2r(Math.min(1.1,o.z+zDepth));
   const thickness=rb-rf;
   
   if(rf<10||thickness<2)return;
@@ -800,40 +778,59 @@ function drawSingleObs(o){
   
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    const t1=rf+thickness*.34, t2=rf+thickness*.68;
-    const edgeInset=Math.max(1.5,thickness*.06);
-
+    
+    // === MASSIVE 3D BLOCK ===
+    // Layer 1: BACK FACE (darkest, the far side disappearing into tunnel)
+    const backThick=Math.max(2,thickness*.12);
     cx.beginPath();
-    cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#5e2610';cx.fill();
-
-    cx.beginPath();
-    cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
-    cx.fillStyle='#884020';cx.fill();
-
-    cx.beginPath();
-    cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
-    cx.fillStyle='#b96532';cx.fill();
-
+    cx.arc(CX,CY,rf+backThick,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
+    cx.fillStyle='#2a1005';cx.fill();
+    
+    // Layer 2: BODY — three bands for depth gradient
+    // Dark back third
+    const t1=rf+thickness*.33, t2=rf+thickness*.66;
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#6a2a10';cx.fill();
+    // Medium middle third
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#8a3c18';cx.fill();
+    // Bright front third
+    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#b85828';cx.fill();
+    
+    // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
     cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
-    cx.strokeStyle='#e39a58';cx.lineWidth=Math.max(2.5,thickness*.08);cx.stroke();
-
-    cx.beginPath();cx.arc(CX,CY,rf,sa-.002,ea+.002);
-    cx.strokeStyle='#321309';cx.lineWidth=Math.max(1.5,thickness*.045);cx.stroke();
-
-    for(const edgeA of[sa,ea]){
-      const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
-      const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
-      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
-      cx.strokeStyle='rgba(60,20,8,.55)';cx.lineWidth=Math.max(1.5,thickness*.05);cx.stroke();
-      cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*(rb-edgeInset),CY+Math.sin(edgeA)*(rb-edgeInset));cx.lineTo(x2,y2);
-      cx.strokeStyle='rgba(245,180,110,.35)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
+    
+    // Layer 4: BACK EDGE — dark
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
+    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
+    
+    // Layer 5: SIDE WALLS (visible edges of the block)
+    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
+    if((o.sectors?.length||1)===1){
+      for(const edgeA of[sa,ea]){
+        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+        // Dark side fill
+        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+        // Bright edge highlight at front corner
+        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
+        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
+        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+      }
     }
-
+    
+    // Layer 6: Surface detail lines for panel look
     cx.beginPath();cx.arc(CX,CY,t1,sa+.01,ea-.01);
-    cx.strokeStyle='rgba(35,15,6,.26)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
+    cx.strokeStyle='rgba(40,18,5,.4)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
     cx.beginPath();cx.arc(CX,CY,t2,sa+.01,ea-.01);
-    cx.strokeStyle='rgba(255,210,150,.13)';cx.lineWidth=Math.max(1,thickness*.022);cx.stroke();
+    cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    
+    // Layer 7: Front highlight for 3D pop
+    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
+    cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
@@ -871,7 +868,8 @@ function drawSingleObs(o){
 function drawSingleCoin(c){
   if(c.collected)return;
   const r=z2r(c.z);
-  const sz=3+depthCurve(c.z)*16;
+  // Perspective-correct size matching z2r curve
+  const sz=2+Math.pow(Math.max(0,c.z),1.8)*20;
   const x=CX+Math.cos(c.angle)*r,y=CY+Math.sin(c.angle)*r;
   
   if(c.missed){
