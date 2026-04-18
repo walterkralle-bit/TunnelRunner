@@ -9,7 +9,7 @@
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;min-height:100%;}
   body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom);font-family:'Orbitron',monospace}
-  #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:calc(100dvh - env(safe-area-inset-bottom));padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
+  #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:calc(100dvh - env(safe-area-inset-bottom));padding-top:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
   canvas{width:400px;height:440px;display:block;flex:0 0 auto}
   #ctrl{width:400px;height:300px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative;flex:0 0 auto}
   #whl{width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
@@ -26,11 +26,11 @@
   #jmp{position:absolute;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f0c0ff,#d080f0 40%,#a040c0);border:3px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(200,100,255,.6);top:50%;left:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
   #jmp:active{transform:translate(-50%,-50%) scale(.88)}
   #posInd{position:absolute;width:6px;height:32px;background:#fff;border-radius:3px;pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.9),0 0 16px rgba(200,100,255,.6);z-index:5;transform-origin:center 130px}
-  #hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
+  #hud{position:absolute;top:12px;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
-  .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
-  #pauseBtn{position:absolute;top:10px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  .hh{position:absolute;top:56px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  #pauseBtn{position:absolute;top:18px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
   #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
@@ -44,7 +44,7 @@
   .btn{margin-top:18px;padding:12px 36px;font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#0088cc,#005588);border:2px solid rgba(0,180,255,.5);border-radius:30px;cursor:pointer;letter-spacing:3px;box-shadow:0 0 16px rgba(0,140,220,.3)}
   .btn:hover{box-shadow:0 0 26px rgba(0,180,255,.6);transform:scale(1.05)}
   @media (max-width: 430px){
-    #wrap{width:100vw;max-width:400px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
+    #wrap{width:100vw;max-width:400px;margin:0 auto;padding-top:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
     canvas,#ctrl{width:100%}
     canvas{height:auto;aspect-ratio:10 / 11}
     #ctrl{height:280px}
@@ -624,8 +624,8 @@ function updateCoins(dt){
     const coinSector=getSector(c.angle);
     const sameSector=coinSector===playerSectorVisual;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.031&&ad<.125){
-      const score=dz*3+ad;
+    if(coinCollectCooldown<=0&&sameSector&&dz<.038&&ad<.16){
+      const score=dz*2.4+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
 
