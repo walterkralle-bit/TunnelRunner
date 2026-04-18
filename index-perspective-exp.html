@@ -10,7 +10,6 @@
   html,body{height:100%;min-height:100%;}
   body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom);font-family:'Orbitron',monospace}
   #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:calc(100dvh - env(safe-area-inset-bottom));padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
-  #gameTopBar{width:400px;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:6px 10px;background:linear-gradient(180deg,#09111f,#0a1018);border-bottom:1px solid rgba(255,255,255,.06)}
   canvas{width:400px;height:440px;display:block;flex:0 0 auto}
   #ctrl{width:400px;height:300px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative;flex:0 0 auto}
   #whl{width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
@@ -31,7 +30,7 @@
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
   .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
-  #pauseBtn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  #pauseBtn{position:absolute;top:10px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
   #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
@@ -46,7 +45,7 @@
   .btn:hover{box-shadow:0 0 26px rgba(0,180,255,.6);transform:scale(1.05)}
   @media (max-width: 430px){
     #wrap{width:100vw;max-width:400px;margin:0 auto;padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
-    #gameTopBar,canvas,#ctrl{width:100%}
+    canvas,#ctrl{width:100%}
     canvas{height:auto;aspect-ratio:10 / 11}
     #ctrl{height:280px}
     #whl{width:240px;height:240px}
@@ -56,8 +55,8 @@
 </head>
 <body>
 <div id="wrap">
-  <div id="gameTopBar"><button id="pauseBtn" aria-label="Pause">❚❚</button></div>
   <div style="position:relative">
+    <button id="pauseBtn" aria-label="Pause">❚❚</button>
     <canvas id="c" width="800" height="880"></canvas>
     <div id="hud"><div class="hs" id="sc">0</div><div class="hr" id="rc">Record: 0</div><div class="hh" id="hrt">🪙 0</div></div>
     <div id="hint"></div>
