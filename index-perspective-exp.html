@@ -26,11 +26,11 @@
   #jmp{position:absolute;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f0c0ff,#d080f0 40%,#a040c0);border:3px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(200,100,255,.6);top:50%;left:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
   #jmp:active{transform:translate(-50%,-50%) scale(.88)}
   #posInd{position:absolute;width:6px;height:32px;background:#fff;border-radius:3px;pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.9),0 0 16px rgba(200,100,255,.6);z-index:5;transform-origin:center 130px}
-  #hud{position:absolute;top:12px;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
+  #hud{position:absolute;top:4px;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
-  .hh{position:absolute;top:56px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
-  #pauseBtn{position:absolute;top:18px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  .hh{position:absolute;top:46px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  #pauseBtn{position:absolute;top:8px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
   #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
@@ -621,11 +621,12 @@ function updateCoins(dt){
 
     const dz=Math.abs(c.z-CFG.playerZ);
     let ad=Math.abs(pAng-c.angle);ad=Math.min(ad,Math.PI*2-ad);
-    const coinSector=getSector(c.angle);
-    const sameSector=coinSector===playerSectorVisual;
+    const sectorDelta=Math.abs(getSector(c.angle)-playerSectorVisual);
+    const wrappedSectorDelta=Math.min(sectorDelta,SECTORS-sectorDelta);
+    const nearSector=wrappedSectorDelta<=1;
 
-    if(coinCollectCooldown<=0&&sameSector&&dz<.038&&ad<.16){
-      const score=dz*2.4+ad;
+    if(coinCollectCooldown<=0&&nearSector&&dz<.04&&ad<.18){
+      const score=dz*2.2+ad+(wrappedSectorDelta*.03);
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
 
@@ -727,8 +728,8 @@ function togglePause(){
 }
 
 function updHUD(){
-  document.getElementById('sc').textContent=sc.toLocaleString();
-  document.getElementById('rc').textContent=`Record: ${hi.toLocaleString()}`;
+  document.getElementById('sc').textContent=`Record: ${hi.toLocaleString()}`;
+  document.getElementById('rc').textContent=sc.toLocaleString();
   document.getElementById('hrt').textContent='🪙 '+coinCount;
   // Position indicator on steering wheel - matches tunnel angle
   const posEl=document.getElementById('posInd');
