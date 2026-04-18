@@ -640,7 +640,15 @@ function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.cla
 // ==================== GAME FLOW ====================
 function die(){lives--;if(lives<=0)endGame();else inv=90}
 const ov=document.getElementById('ov');
-document.getElementById('go').addEventListener('click',startGame);
+const startBtn=document.getElementById('go');
+function bindStartButton(){
+  if(!startBtn)return;
+  startBtn.onclick=startGame;
+  startBtn.addEventListener('click',startGame);
+  startBtn.addEventListener('touchstart',e=>{e.preventDefault();startGame()},{passive:false});
+  startBtn.addEventListener('pointerdown',e=>{e.preventDefault();startGame()});
+}
+bindStartButton();
 
 function startGame(){
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
