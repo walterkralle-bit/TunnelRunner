@@ -783,35 +783,60 @@ function drawSingleObs(o){
   
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    const t1=rf+thickness*.28, t2=rf+thickness*.6;
+    const midA=(sa+ea)/2;
+    const outerFront=rb;
+    const innerFront=Math.max(rf+thickness*.18, rb-thickness*.58);
+    const outerBack=Math.max(innerFront+1, rb-thickness*.24);
+    const bevel=Math.min(.045, o.arcSize*.16);
 
+    // back body
     cx.beginPath();
-    cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#5d2610';cx.fill();
+    cx.arc(CX,CY,outerBack,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#6e3016';cx.fill();
 
+    // front face, brighter and flatter like inserted wedge block
     cx.beginPath();
-    cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
-    cx.fillStyle='#854020';cx.fill();
+    cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
+    cx.arc(CX,CY,innerFront,ea-bevel,sa+bevel,true);
+    cx.closePath();
+    cx.fillStyle='#c87445';cx.fill();
 
-    cx.beginPath();
-    cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
-    cx.fillStyle='#b86432';cx.fill();
+    // darker side bevel strips
+    for(const pair of [[sa,sa+bevel],[ea-bevel,ea]]){
+      cx.beginPath();
+      cx.arc(CX,CY,outerFront,pair[0],pair[1]);
+      cx.arc(CX,CY,rf,pair[1],pair[0],true);
+      cx.closePath();
+      cx.fillStyle='#8c4322';cx.fill();
+    }
 
-    cx.beginPath();cx.arc(CX,CY,rb-frontWeight*.65,sa+.01,ea-.01);
-    cx.strokeStyle='rgba(255,210,150,.18)';cx.lineWidth=Math.max(1,thickness*.035);cx.stroke();
+    // front outline
+    cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
+    cx.strokeStyle='#e8a06a';cx.lineWidth=Math.max(2.2,thickness*.075);cx.stroke();
 
-    cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
-    cx.strokeStyle='#e09452';cx.lineWidth=Math.max(2.4,thickness*.08);cx.stroke();
+    // inner front shadow to separate face from body
+    cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
+    cx.strokeStyle='rgba(80,30,12,.55)';cx.lineWidth=Math.max(1.3,thickness*.04);cx.stroke();
 
-    cx.beginPath();cx.arc(CX,CY,rf,sa-.002,ea+.002);
-    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(1.2,thickness*.045);cx.stroke();
+    // subtle center plane highlight like the original chunky pieces
+    cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
+    cx.strokeStyle='rgba(255,220,180,.16)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
 
+    // radial side edges for solidity
     for(const edgeA of[sa,ea]){
       const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
-      const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+      const x2=CX+Math.cos(edgeA)*outerFront,y2=CY+Math.sin(edgeA)*outerFront;
       cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
-      cx.strokeStyle='rgba(70,28,10,.5)';cx.lineWidth=Math.max(1.6,thickness*.045);cx.stroke();
+      cx.strokeStyle='rgba(88,36,16,.6)';cx.lineWidth=Math.max(1.8,thickness*.05);cx.stroke();
     }
+
+    // tiny perspective notch so it reads more as a wedge than a painted ring slice
+    const nx1=CX+Math.cos(midA)*(innerFront+thickness*.05);
+    const ny1=CY+Math.sin(midA)*(innerFront+thickness*.05);
+    const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
+    const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
+    cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
+    cx.strokeStyle='rgba(120,55,24,.22)';cx.lineWidth=Math.max(1,thickness*.025);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
