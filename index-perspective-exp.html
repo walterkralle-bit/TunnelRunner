@@ -405,7 +405,11 @@ function spawnComboRing(diff){
 
 function updateObs(dt){
   const s=dt*spd;
-  for(let o of obs)o.z+=o.spd*s;
+  for(let o of obs){
+    const t=Math.max(0,Math.min(1,o.z));
+    const accel=.82+.38*t;
+    o.z+=o.spd*s*accel;
+  }
   obs=obs.filter(o=>o.z<1.15);
   if(inv>0)return;
   
@@ -742,6 +746,7 @@ function drawSingleObs(o){
   const rf=z2r(o.z);
   const rb=z2r(Math.min(1.1,o.z+zDepth));
   const thickness=rb-rf;
+  const frontWeight=Math.max(1,thickness*.1);
   
   if(rf<10||thickness<2)return;
   const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
@@ -778,59 +783,35 @@ function drawSingleObs(o){
   
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    
-    // === MASSIVE 3D BLOCK ===
-    // Layer 1: BACK FACE (darkest, the far side disappearing into tunnel)
-    const backThick=Math.max(2,thickness*.12);
+    const t1=rf+thickness*.28, t2=rf+thickness*.6;
+
     cx.beginPath();
-    cx.arc(CX,CY,rf+backThick,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
-    cx.fillStyle='#2a1005';cx.fill();
-    
-    // Layer 2: BODY — three bands for depth gradient
-    // Dark back third
-    const t1=rf+thickness*.33, t2=rf+thickness*.66;
-    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#6a2a10';cx.fill();
-    // Medium middle third
-    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
-    cx.fillStyle='#8a3c18';cx.fill();
-    // Bright front third
-    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
-    cx.fillStyle='#b85828';cx.fill();
-    
-    // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
+    cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#5d2610';cx.fill();
+
+    cx.beginPath();
+    cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#854020';cx.fill();
+
+    cx.beginPath();
+    cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#b86432';cx.fill();
+
+    cx.beginPath();cx.arc(CX,CY,rb-frontWeight*.65,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(255,210,150,.18)';cx.lineWidth=Math.max(1,thickness*.035);cx.stroke();
+
     cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
-    cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
-    
-    // Layer 4: BACK EDGE — dark
-    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
-    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
-    
-    // Layer 5: SIDE WALLS (visible edges of the block)
-    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
-    if((o.sectors?.length||1)===1){
-      for(const edgeA of[sa,ea]){
-        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
-        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
-        // Dark side fill
-        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
-        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
-        // Bright edge highlight at front corner
-        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
-        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
-        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
-      }
+    cx.strokeStyle='#e09452';cx.lineWidth=Math.max(2.4,thickness*.08);cx.stroke();
+
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.002,ea+.002);
+    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(1.2,thickness*.045);cx.stroke();
+
+    for(const edgeA of[sa,ea]){
+      const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+      const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+      cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+      cx.strokeStyle='rgba(70,28,10,.5)';cx.lineWidth=Math.max(1.6,thickness*.045);cx.stroke();
     }
-    
-    // Layer 6: Surface detail lines for panel look
-    cx.beginPath();cx.arc(CX,CY,t1,sa+.01,ea-.01);
-    cx.strokeStyle='rgba(40,18,5,.4)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
-    cx.beginPath();cx.arc(CX,CY,t2,sa+.01,ea-.01);
-    cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
-    
-    // Layer 7: Front highlight for 3D pop
-    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
-    cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
