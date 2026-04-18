@@ -235,19 +235,19 @@ function drawPlayer(){
   const shadowY=CY+Math.sin(pAng)*shadowR;
   const lift=Math.max(0,jOff()/CFG.jumpHeight);
   
-  // Contact shadow / wall marker makes depth and jump timing easier to read
+  // Permanent contact shadow / wall marker makes position and timing easier to read
   cx.save();
   cx.translate(shadowX,shadowY);
   cx.rotate(pAng+Math.PI/2);
   cx.scale(1,.55+.2*lift);
   cx.beginPath();
-  cx.arc(0,0,sz*(.78-.14*lift),0,Math.PI*2);
-  cx.fillStyle=`rgba(0,0,0,${.26-.1*lift})`;
+  cx.arc(0,0,sz*(.8-.12*lift),0,Math.PI*2);
+  cx.fillStyle=`rgba(0,0,0,${.3-.08*lift})`;
   cx.fill();
   cx.beginPath();
-  cx.arc(0,0,sz*(.95-.1*lift),0,Math.PI*2);
-  cx.strokeStyle=`rgba(120,220,255,${.26-.12*lift})`;
-  cx.lineWidth=Math.max(2,sz*.09);
+  cx.arc(0,0,sz*(.98-.08*lift),0,Math.PI*2);
+  cx.strokeStyle=`rgba(120,220,255,${.34-.1*lift})`;
+  cx.lineWidth=Math.max(2.2,sz*.095);
   cx.stroke();
   cx.restore();
   
@@ -663,7 +663,7 @@ function updateCoins(dt){
     bestCoin.collected=true;
     sc+=100;coinCount++;spawnParts(bestCoin.angle,bestCoin.z);
     const cr=z2r(bestCoin.z);
-    addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+100','#ffdd00');
+    addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+1 COIN','#ffdd00');
     coinCollectCooldown=3;
   }
 }
@@ -751,7 +751,7 @@ function togglePause(){
 function updHUD(){
   document.getElementById('sc').textContent=`Record: ${hi.toLocaleString()}`;
   document.getElementById('rc').textContent=sc.toLocaleString();
-  document.getElementById('hrt').textContent='🪙 '+coinCount;
+  document.getElementById('hrt').textContent='🟡 '+coinCount;
   // Position indicator on steering wheel - matches tunnel angle
   const posEl=document.getElementById('posInd');
   if(posEl){
@@ -964,41 +964,22 @@ function drawSingleObs(o){
     const blueOuter=rb;
     const blueInner=rb-blueThickness;
     const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
-    const approach=Math.max(0,Math.min(1,(o.z-.18)/(.82-.18)));
-    const glowAlpha=.1+.28*approach;
-    const pulse=1+.08*Math.sin(fc*.18+o.angle*5);
-
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
-
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
     cx.fillStyle='#0bbccc';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
     cx.fillStyle='#088898';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
     cx.fillStyle='#055868';cx.fill();
-
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
     cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
     cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
-
     for(const edgeA of[sa,ea]){
       cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
-
-    cx.beginPath();
-    cx.arc(CX,CY,blueOuter+thickness*.1*pulse,sa-.01,ea+.01);
-    cx.strokeStyle=`rgba(110,245,255,${glowAlpha})`;
-    cx.lineWidth=Math.max(3,thickness*.09);
-    cx.stroke();
-
-    cx.beginPath();
-    cx.arc(CX,CY,blueOuter-thickness*.18,sa+.012,ea-.012);
-    cx.strokeStyle=`rgba(255,255,255,${.12+.18*approach})`;
-    cx.lineWidth=Math.max(1.5,thickness*.035);
-    cx.stroke();
   }
   cx.globalAlpha=1;
 }
