@@ -897,12 +897,44 @@ function loop(ts){
     
     updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
-  drawTunnel();drawSceneSplit();drawSparks();drawParts();drawFloats();
+  drawTunnel();drawSceneSplit();drawSparks();drawParts();drawForegroundRim();drawFloats();
   requestAnimationFrame(loop);
 }
 
 // Split scene drawing: items behind player → player → items at/in-front of player
 // This creates the 3D effect where the ring partially covers the wheel during a jump
+function drawForegroundRim(){
+  const tunnelHue=getTunnelHue();
+  const outerMask=OR+6;
+  const lipOuter=OR+22;
+  const lipInner=OR-14;
+
+  cx.save();
+  cx.beginPath();
+  cx.rect(0,0,W,H);
+  cx.arc(CX,CY,outerMask,0,Math.PI*2,true);
+  cx.fillStyle='rgba(2,6,12,.98)';
+  cx.fill('evenodd');
+
+  const lip=cx.createRadialGradient(CX,CY,lipInner,CX,CY,lipOuter);
+  lip.addColorStop(0,`hsla(${tunnelHue},45%,18%,0)`);
+  lip.addColorStop(.45,`hsla(${tunnelHue},52%,20%,.92)`);
+  lip.addColorStop(.75,'rgba(8,18,34,.98)');
+  lip.addColorStop(1,'rgba(0,0,0,1)');
+  cx.beginPath();
+  cx.arc(CX,CY,lipOuter,0,Math.PI*2);
+  cx.arc(CX,CY,lipInner,0,Math.PI*2,true);
+  cx.fillStyle=lip;
+  cx.fill();
+
+  cx.beginPath();
+  cx.arc(CX,CY,OR+2,0,Math.PI*2);
+  cx.strokeStyle='rgba(120,200,255,.18)';
+  cx.lineWidth=4;
+  cx.stroke();
+  cx.restore();
+}
+
 function drawSceneSplit(){
   const items=[];
   for(let o of obs){if(o.z>=.05)items.push({type:'obs',obj:o,z:o.z})}
