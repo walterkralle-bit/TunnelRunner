@@ -114,6 +114,7 @@ let coinModeTimer=0;
 let coinCollectCooldown=0;
 let laneBlockCooldown=0;
 let passageSpawnGuard=0;
+let shakeTimer=0,shakeStrength=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
@@ -927,7 +928,7 @@ function showHint(txt){hintEl.textContent=txt;hintEl.classList.add('show');hintT
 function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.classList.remove('show')}}
 
 // ==================== GAME FLOW ====================
-function die(){playCrashSound();lives--;if(lives<=0)endGame();else inv=90}
+function die(){playCrashSound();shakeTimer=12;shakeStrength=7;lives--;if(lives<=0)endGame();else inv=90}
 const ov=document.getElementById('ov');
 const startBtn=document.getElementById('go');
 function bindStartButton(){
@@ -943,7 +944,7 @@ function startGame(){
   resumeAudio();
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
-  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;shakeTimer=0;shakeStrength=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
   ov.classList.add('hidden');updHUD();
@@ -1040,7 +1041,16 @@ function loop(ts){
     
     updatePlayer(dt);updateBands(dt);updateObs(dt);updateCoins(dt);updateParts(dt);updateSparks(dt);updateFloats(dt);updateHint(dt);updHUD();
   }
+  if(shakeTimer>0){
+    shakeTimer=Math.max(0,shakeTimer-dt);
+    shakeStrength*=.9;
+  }
+  const shakeX=shakeTimer>0?(Math.random()*2-1)*shakeStrength:0;
+  const shakeY=shakeTimer>0?(Math.random()*2-1)*shakeStrength:0;
+  cx.save();
+  cx.translate(shakeX,shakeY);
   drawTunnel();drawSceneSplit();drawSparks();drawParts();drawForegroundRim();drawFloats();
+  cx.restore();
   requestAnimationFrame(loop);
 }
 
