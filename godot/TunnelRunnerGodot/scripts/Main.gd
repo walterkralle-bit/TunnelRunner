@@ -1,33 +1,40 @@
 extends Node2D
 
-const SECTORS := 8
-const TAU_F := TAU
-const PLAYER_Z := 0.82
-const BASE_OBS_SPEED := 0.36
-const JUMP_DURATION := 0.42
-const JUMP_HEIGHT := 0.24
-const TOUCH_JUMP_ACTION := "touch_jump"
-const SAVE_PATH := "user://tunnel_runner_save.cfg"
+const SECTORS: int = 8
+const TAU_F: float = TAU
+const PLAYER_Z: float = 0.82
+const BASE_OBS_SPEED: float = 0.34
+const JUMP_DURATION: float = 0.42
+const JUMP_HEIGHT: float = 0.25
+const SAVE_PATH: String = "user://tunnel_runner_save.cfg"
+const NBANDS: int = 12
+const BSPC: float = 0.11
+const NLONG: int = 24
+const WHEEL_RADIUS: float = 130.0
 
-var score := 0
-var record := 0
-var coin_count := 0
-var run_distance := 0.0
-var speed_scale := 1.0
-var spawn_timer := 0.0
-var coin_timer := 0.0
-var game_running := false
-var game_over := false
-var spawn_phase := 0
+var score: int = 0
+var record: int = 0
+var coin_count: int = 0
+var run_distance: float = 0.0
+var speed_scale: float = 1.0
+var spawn_timer: float = 0.0
+var coin_timer: float = 0.0
+var game_running: bool = false
+var game_over: bool = false
+var spawn_phase: int = 0
+var tunnel_hue: float = 210.0
 
-var player_angle := PI / 2.0
-var target_angle := PI / 2.0
-var jumping := false
-var jump_timer := 0.0
+var player_angle: float = PI / 2.0
+var target_angle: float = PI / 2.0
+var jumping: bool = false
+var jump_timer: float = 0.0
+var wheel_spin: float = 0.0
+var wheel_dragging: bool = false
 
-var obstacles: Array = []
-var coins: Array = []
-var particles: Array = []
+var obstacles: Array[Dictionary] = []
+var coins: Array[Dictionary] = []
+var particles: Array[Dictionary] = []
+var bands: Array[Dictionary] = []
 
 @onready var score_label: Label = $UI/ScoreLabel
 @onready var record_label: Label = $UI/RecordLabel
@@ -35,42 +42,45 @@ var particles: Array = []
 @onready var overlay: Control = $UI/Overlay
 @onready var state_label: Label = $UI/Overlay/CenterBox/StateLabel
 @onready var start_button: Button = $UI/Overlay/CenterBox/StartButton
-@onready var jump_button: Button = $UI/TouchJumpButton
+@onready var wheel_area: Control = $UI/ControlsRoot/WheelArea
+@onready var wheel_indicator: ColorRect = $UI/ControlsRoot/WheelArea/WheelIndicator
+@onready var jump_button: Button = $UI/ControlsRoot/JumpButton
 
 func _ready() -> void:
+	randomize()
 	_setup_input()
 	_load_record()
+	_init_bands()
 	start_button.pressed.connect(_on_start_pressed)
 	jump_button.pressed.connect(_on_jump_pressed)
-	jump_button.visible = true
+	wheel_area.gui_input.connect(_on_wheel_gui_input)
 	_reset_run_state()
 	_update_hud()
+	_update_wheel_indicator()
 	queue_redraw()
 
 func _setup_input() -> void:
 	if not InputMap.has_action("turn_left"):
 		InputMap.add_action("turn_left")
-		var ev_left := InputEventKey.new()
+		var ev_left: InputEventKey = InputEventKey.new()
 		ev_left.physical_keycode = KEY_LEFT
 		InputMap.action_add_event("turn_left", ev_left)
-		var ev_a := InputEventKey.new()
+		var ev_a: InputEventKey = InputEventKey.new()
 		ev_a.physical_keycode = KEY_A
 		InputMap.action_add_event("turn_left", ev_a)
 	if not InputMap.has_action("turn_right"):
 		InputMap.add_action("turn_right")
-		var ev_right := InputEventKey.new()
+		var ev_right: InputEventKey = InputEventKey.new()
 		ev_right.physical_keycode = KEY_RIGHT
 		InputMap.action_add_event("turn_right", ev_right)
-		var ev_d := InputEventKey.new()
+		var ev_d: InputEventKey = InputEventKey.new()
 		ev_d.physical_keycode = KEY_D
 		InputMap.action_add_event("turn_right", ev_d)
 	if not InputMap.has_action("jump"):
 		InputMap.add_action("jump")
-		var ev_space := InputEventKey.new()
+		var ev_space: InputEventKey = InputEventKey.new()
 		ev_space.physical_keycode = KEY_SPACE
 		InputMap.action_add_event("jump", ev_space)
-	if not InputMap.has_action(TOUCH_JUMP_ACTION):
-		InputMap.add_action(TOUCH_JUMP_ACTION)
 
 func _on_start_pressed() -> void:
 	start_run()
@@ -100,27 +110,64 @@ func _reset_run_state() -> void:
 	target_angle = player_angle
 	jumping = false
 	jump_timer = 0.0
+	wheel_spin = 0.0
+	wheel_dragging = false
 	obstacles.clear()
 	coins.clear()
 	particles.clear()
+	_init_bands()
 	state_label.text = "Ausweichen, springen, Coins sammeln"
+	start_button.text = "START"
 	_update_hud()
 
 func _process(delta: float) -> void:
 	_update_input(delta)
 	if game_running:
 		_update_run(delta)
+	_update_wheel_indicator()
 	queue_redraw()
 
 func _update_input(delta: float) -> void:
-	var turn_input := Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")
-	if turn_input != 0.0:
-		target_angle = wrapf(target_angle + turn_input * delta * 3.2, 0.0, TAU_F)
+	var turn_input: float = Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")
+	if not wheel_dragging and turn_input != 0.0:
+		target_angle = wrapf(target_angle + turn_input * delta * 3.4, 0.0, TAU_F)
 	player_angle = lerp_angle(player_angle, target_angle, min(1.0, delta * 8.0))
 	if Input.is_action_just_pressed("jump"):
 		if not game_running and not game_over:
 			start_run()
 		_perform_jump()
+
+func _on_wheel_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mouse_button: InputEventMouseButton = event
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
+			wheel_dragging = mouse_button.pressed
+			if mouse_button.pressed:
+				_set_target_from_wheel(mouse_button.position)
+	elif event is InputEventMouseMotion and wheel_dragging:
+		var mouse_motion: InputEventMouseMotion = event
+		_set_target_from_wheel(mouse_motion.position)
+	elif event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event
+		wheel_dragging = touch.pressed
+		if touch.pressed:
+			_set_target_from_wheel(wheel_area.get_local_mouse_position())
+	elif event is InputEventScreenDrag and wheel_dragging:
+		_set_target_from_wheel(wheel_area.get_local_mouse_position())
+
+func _set_target_from_wheel(local_pos: Vector2) -> void:
+	var center: Vector2 = wheel_area.size * 0.5
+	var delta: Vector2 = local_pos - center
+	if delta.length() < 24.0:
+		return
+	target_angle = wrapf(delta.angle(), 0.0, TAU_F)
+
+func _update_wheel_indicator() -> void:
+	var center: Vector2 = wheel_area.position + wheel_area.size * 0.5
+	var r: float = wheel_area.size.x * 0.46
+	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * (r - 24.0)
+	wheel_indicator.position = pos - wheel_indicator.size * Vector2(0.5, 0.25)
+	wheel_indicator.rotation = player_angle + PI * 0.5
 
 func _perform_jump() -> void:
 	if jumping or game_over:
@@ -132,8 +179,10 @@ func _update_run(delta: float) -> void:
 	run_distance += delta * speed_scale
 	score += int(round(delta * speed_scale * 120.0))
 	speed_scale = 1.0 + run_distance * 0.018
+	wheel_spin += delta * speed_scale * 4.6
 	spawn_timer += delta
 	coin_timer += delta
+	tunnel_hue = fposmod(210.0 + run_distance * 6.0, 360.0)
 	if spawn_timer >= max(0.42, 1.05 - run_distance * 0.02):
 		spawn_timer = 0.0
 		_spawn_group()
@@ -141,6 +190,7 @@ func _update_run(delta: float) -> void:
 		coin_timer = 0.0
 		_spawn_coin_line()
 	_update_jump(delta)
+	_update_bands(delta)
 	_update_obstacles(delta)
 	_update_coins(delta)
 	_update_particles(delta)
@@ -159,27 +209,41 @@ func _jump_offset() -> float:
 		return 0.0
 	return sin((jump_timer / JUMP_DURATION) * PI) * JUMP_HEIGHT
 
+func _init_bands() -> void:
+	bands.clear()
+	for i in range(NBANDS):
+		bands.append({"z": float(i) * BSPC, "id": i})
+
+func _update_bands(delta: float) -> void:
+	for band in bands:
+		band["z"] += BASE_OBS_SPEED * speed_scale * delta
+	for band in bands:
+		if band["z"] > 1.15:
+			var minimum_z: float = 1.0
+			for other in bands:
+				minimum_z = min(minimum_z, float(other["z"]))
+			band["z"] = minimum_z - BSPC
+			band["id"] = int(band["id"]) - NBANDS
+
 func _spawn_group() -> void:
 	var difficulty: float = min(1.0, run_distance / 40.0)
-	var safe_sector: int = _sector_for_angle(player_angle)
+	var player_sector: int = _sector_for_angle(player_angle)
 	var blocked: Array[int] = []
-	match spawn_phase % 4:
+	match spawn_phase % 5:
 		0:
-			blocked = _make_block_pattern(safe_sector, 2 + int(round(difficulty * 2.0)))
+			blocked = _make_block_pattern(player_sector, 2 + int(round(difficulty * 2.0)))
+			_spawn_blocks(blocked, 0.12)
 		1:
-			blocked = _make_block_pattern((safe_sector + 1) % SECTORS, 3)
+			blocked = _make_block_pattern((player_sector + 1) % SECTORS, 3)
+			_spawn_blocks(blocked, 0.13)
 		2:
-			blocked = _make_jump_gate_pattern(safe_sector)
+			_spawn_combo_ring(player_sector)
+		3:
+			blocked = _make_block_pattern((player_sector + SECTORS - 1) % SECTORS, 2)
+			_spawn_blocks(blocked, 0.11)
 		_:
-			blocked = _make_block_pattern((safe_sector + SECTORS - 1) % SECTORS, 2)
+			_spawn_ring()
 	spawn_phase += 1
-	for sector in blocked:
-		obstacles.append({
-			"kind": "block",
-			"sector": sector,
-			"z": 0.0,
-			"depth": 0.14,
-		})
 
 func _make_block_pattern(anchor_sector: int, width: int) -> Array[int]:
 	var sectors: Array[int] = []
@@ -187,49 +251,61 @@ func _make_block_pattern(anchor_sector: int, width: int) -> Array[int]:
 		sectors.append((anchor_sector + 2 + i) % SECTORS)
 	return sectors
 
-func _make_jump_gate_pattern(safe_sector: int) -> Array[int]:
-	var blocked: Array[int] = []
+func _spawn_blocks(blocked: Array[int], depth: float) -> void:
+	for sector in blocked:
+		obstacles.append({"kind": "block", "sector": sector, "z": 0.0, "depth": depth})
+
+func _spawn_combo_ring(player_sector: int) -> void:
+	var jump_sector: int = (player_sector + 2) % SECTORS
 	for sector in range(SECTORS):
-		if sector == safe_sector:
-			continue
-		blocked.append(sector)
-	return blocked
+		if sector == jump_sector:
+			obstacles.append({"kind": "blue", "sector": sector, "z": 0.0, "depth": 0.10})
+		else:
+			obstacles.append({"kind": "block", "sector": sector, "z": 0.0, "depth": 0.10})
+
+func _spawn_ring() -> void:
+	obstacles.append({"kind": "ring", "sector": -1, "z": 0.0, "depth": 0.08})
 
 func _spawn_coin_line() -> void:
 	if not game_running:
 		return
 	var sector: int = _sector_for_angle(player_angle)
 	for i in range(4):
-		coins.append({
-			"sector": sector,
-			"angle": _angle_for_sector(sector),
-			"z": -0.12 - i * 0.12,
-		})
+		coins.append({"sector": sector, "angle": _angle_for_sector(sector), "z": -0.12 - i * 0.12})
 
 func _update_obstacles(delta: float) -> void:
-	var next: Array = []
+	var next: Array[Dictionary] = []
 	for obstacle in obstacles:
 		obstacle["z"] += BASE_OBS_SPEED * speed_scale * delta
-		var back_z: float = obstacle["z"] + obstacle["depth"]
-		if obstacle["z"] > 1.22:
+		var back_z: float = float(obstacle["z"]) + float(obstacle["depth"])
+		if float(obstacle["z"]) > 1.22:
 			continue
-		if obstacle["z"] <= PLAYER_Z + 0.03 and back_z >= PLAYER_Z - 0.03:
-			if obstacle["sector"] == _sector_for_angle(player_angle) and _jump_offset() < 0.08:
-				_trigger_game_over()
-				return
+		if float(obstacle["z"]) <= PLAYER_Z + 0.03 and back_z >= PLAYER_Z - 0.03:
+			if obstacle["kind"] == "ring":
+				if _jump_offset() < 0.09:
+					_trigger_game_over()
+					return
+			elif int(obstacle["sector"]) == _sector_for_angle(player_angle):
+				if obstacle["kind"] == "blue":
+					if _jump_offset() < 0.09:
+						_trigger_game_over()
+						return
+				else:
+					_trigger_game_over()
+					return
 		next.append(obstacle)
 	obstacles = next
 
 func _update_coins(delta: float) -> void:
-	var next: Array = []
+	var next: Array[Dictionary] = []
 	for coin in coins:
 		coin["z"] += BASE_OBS_SPEED * speed_scale * delta
-		if coin["z"] > 1.18:
+		if float(coin["z"]) > 1.18:
 			continue
-		if abs(coin["z"] - PLAYER_Z) < 0.04 and coin["sector"] == _sector_for_angle(player_angle) and _jump_offset() < 0.12:
+		if abs(float(coin["z"]) - PLAYER_Z) < 0.04 and int(coin["sector"]) == _sector_for_angle(player_angle) and _jump_offset() < 0.12:
 			coin_count += 1
 			score += 100
-			_spawn_pickup_particles(coin["angle"], coin["z"])
+			_spawn_pickup_particles(float(coin["angle"]), float(coin["z"]))
 			continue
 		next.append(coin)
 	coins = next
@@ -239,17 +315,13 @@ func _spawn_pickup_particles(angle: float, z: float) -> void:
 	var radius: float = _radius_for_z(z)
 	var pos: Vector2 = center + Vector2(cos(angle), sin(angle)) * radius
 	for i in range(6):
-		particles.append({
-			"pos": pos,
-			"vel": Vector2(randf_range(-90.0, 90.0), randf_range(-90.0, 90.0)),
-			"life": 0.45,
-		})
+		particles.append({"pos": pos, "vel": Vector2(randf_range(-90.0, 90.0), randf_range(-90.0, 90.0)), "life": 0.45})
 
 func _update_particles(delta: float) -> void:
-	var next: Array = []
+	var next: Array[Dictionary] = []
 	for p in particles:
 		p["life"] -= delta
-		if p["life"] <= 0.0:
+		if float(p["life"]) <= 0.0:
 			continue
 		p["pos"] += p["vel"] * delta
 		next.append(p)
@@ -272,8 +344,9 @@ func _update_hud() -> void:
 	coin_label.text = "🪙 %s" % coin_count
 
 func _draw() -> void:
-	var rect := Rect2(Vector2.ZERO, get_viewport_rect().size)
-	draw_rect(rect, Color(0.02, 0.03, 0.08), true)
+	var rect: Rect2 = Rect2(Vector2.ZERO, get_viewport_rect().size)
+	var bg: Color = _background_color()
+	draw_rect(rect, bg, true)
 	_draw_tunnel()
 	_draw_obstacles()
 	_draw_coins()
@@ -281,77 +354,185 @@ func _draw() -> void:
 	_draw_particles()
 
 func _draw_tunnel() -> void:
-	var center := _screen_center()
-	for i in range(10):
-		var z0 := float(i) / 10.0
-		var z1 := float(i + 1) / 10.0
-		var r0 := _radius_for_z(z0)
-		var r1 := _radius_for_z(z1)
-		var col := Color.from_hsv(0.58 + sin(run_distance * 0.1 + i * 0.2) * 0.04, 0.45, 0.18 + i * 0.05)
-		draw_circle(center, r1, col)
-		draw_circle(center, r0, Color(0.02, 0.03, 0.08))
-	for i in range(24):
-		var a := (float(i) / 24.0) * TAU_F
-		draw_line(center + Vector2(cos(a), sin(a)) * 50.0, center + Vector2(cos(a), sin(a)) * 440.0, Color(0.16, 0.24, 0.4, 0.5), 2.0)
+	var center: Vector2 = _screen_center()
+	var sorted_bands: Array[Dictionary] = bands.duplicate()
+	sorted_bands.sort_custom(func(a, b): return float(a["z"]) < float(b["z"]))
+	for i in range(sorted_bands.size() - 1):
+		var b: Dictionary = sorted_bands[i]
+		var n: Dictionary = sorted_bands[i + 1]
+		var z0: float = max(0.0, float(b["z"]))
+		var z1: float = min(1.06, float(n["z"]))
+		if z1 <= z0:
+			continue
+		var r0: float = _radius_for_z(z0)
+		var r1: float = _radius_for_z(z1)
+		if r1 - r0 < 0.5:
+			continue
+		var is_dark: bool = int(b["id"]) % 2 == 0
+		for j in range(NLONG):
+			var a0: float = (float(j) / float(NLONG)) * TAU_F
+			var a1: float = (float(j + 1) / float(NLONG)) * TAU_F
+			var panel_var: float = 0.03 if j % 2 == 0 else -0.03
+			var base_light: float = 0.28 if is_dark else 0.42
+			var light: float = base_light + panel_var
+			var depth_fade: float = 0.4 + min(1.0, z0) * 0.6
+			var col: Color = Color.from_hsv(tunnel_hue / 360.0, 0.42 + light * 0.18, 0.12 + light * depth_fade * 0.52)
+			_draw_ring_slice(center, r0, r1, a0, a1, col)
+		draw_arc(center, r1, 0.0, TAU_F, 120, Color(0.03, 0.07, 0.16, 0.55), 1.0 + min(1.0, z1) * 1.5)
+	var inner_r: float = _inner_radius()
+	var outer_r: float = _outer_radius()
+	for i in range(NLONG):
+		var a: float = (float(i) / float(NLONG)) * TAU_F
+		var col2: Color = Color(0.12, 0.22, 0.42, 0.6) if i % 4 == 0 else Color(0.08, 0.16, 0.32, 0.45)
+		draw_line(center + Vector2(cos(a), sin(a)) * inner_r, center + Vector2(cos(a), sin(a)) * outer_r, col2, 2.0 if i % 4 == 0 else 1.0)
+	var grad_steps: int = 14
+	for i in range(grad_steps, 0, -1):
+		var rr: float = inner_r + 12.0 * float(i) / float(grad_steps)
+		var alpha: float = 0.06 + 0.04 * float(i) / float(grad_steps)
+		draw_circle(center, rr, Color(0.0, 0.0, 0.0, alpha))
 
 func _draw_player() -> void:
-	var center := _screen_center()
-	var r := _radius_for_z(PLAYER_Z - _jump_offset())
-	var pos := center + Vector2(cos(player_angle), sin(player_angle)) * r
-	draw_circle(pos, 22.0, Color(0.18, 0.78, 0.95))
-	draw_circle(pos, 10.0, Color(0.78, 0.94, 1.0))
+	var center: Vector2 = _screen_center()
+	var jump_off: float = _jump_offset()
+	var r: float = _radius_for_z(PLAYER_Z - jump_off)
+	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * r
+	var size: float = 18.0 + PLAYER_Z * 8.0
+	for t in range(1, 7):
+		var trail_z: float = PLAYER_Z - jump_off - 0.03 * float(t)
+		if trail_z < 0.05:
+			break
+		var tr: float = _radius_for_z(trail_z)
+		var alpha: float = 0.35 - float(t) * 0.05
+		var width: float = size * (0.6 - float(t) * 0.06)
+		if alpha <= 0.0 or width <= 0.0:
+			break
+		draw_arc(center, tr, player_angle - 0.08, player_angle + 0.08, 18, Color(0.12, 0.32, 0.55, alpha), width)
+	draw_circle(pos, size * 1.5, Color(0.0, 0.55, 0.95, 0.14))
+	draw_circle(pos, size, Color(0.05, 0.12, 0.21))
+	draw_arc(pos, size, wheel_spin, wheel_spin + TAU_F, 40, Color(0.0, 0.72, 0.92), 2.5)
+	for i in range(8):
+		var a: float = wheel_spin + (float(i) / 8.0) * TAU_F
+		draw_line(pos + Vector2(cos(a), sin(a)) * size * 0.75, pos + Vector2(cos(a), sin(a)) * size * 0.95, Color(0.0, 0.55, 0.82, 0.45), 2.0)
+	for i in range(4):
+		var a2: float = wheel_spin + (float(i) / 4.0) * TAU_F
+		draw_line(pos, pos + Vector2(cos(a2), sin(a2)) * size * 0.62, Color(0.0, 0.55, 0.75), 2.0)
+	draw_circle(pos, size * 0.22, Color(0.24, 0.84, 0.95))
 
 func _draw_obstacles() -> void:
-	var center := _screen_center()
-	var sorted := obstacles.duplicate()
-	sorted.sort_custom(func(a, b): return a["z"] < b["z"])
+	var center: Vector2 = _screen_center()
+	var sorted: Array[Dictionary] = obstacles.duplicate()
+	sorted.sort_custom(func(a, b): return float(a["z"]) < float(b["z"]))
 	for obstacle in sorted:
-		var front_r := _radius_for_z(obstacle["z"])
-		var back_r := _radius_for_z(min(1.0, obstacle["z"] + obstacle["depth"]))
-		var dir := Vector2(cos(_angle_for_sector(obstacle["sector"])), sin(_angle_for_sector(obstacle["sector"])))
-		var tangent := dir.orthogonal()
-		var width := 34.0 + front_r * 0.08
-		var p1 := center + dir * front_r + tangent * width
-		var p2 := center + dir * front_r - tangent * width
-		var p3 := center + dir * back_r - tangent * width * 0.72
-		var p4 := center + dir * back_r + tangent * width * 0.72
-		draw_colored_polygon(PackedVector2Array([p1, p2, p3, p4]), Color(0.74, 0.42, 0.24))
+		var zf: float = float(obstacle["z"])
+		if zf < 0.04:
+			continue
+		var z_depth: float = 0.14 if obstacle["kind"] == "block" else 0.08
+		var rf: float = _radius_for_z(zf)
+		var rb: float = _radius_for_z(min(1.1, zf + z_depth))
+		var thickness: float = rb - rf
+		if rf < 10.0 or thickness < 2.0:
+			continue
+		if obstacle["kind"] == "ring":
+			_draw_ring(center, rf, rb)
+		else:
+			var sa: float = _angle_for_sector(int(obstacle["sector"])) - _sector_size() * 0.48
+			var ea: float = _angle_for_sector(int(obstacle["sector"])) + _sector_size() * 0.48
+			if obstacle["kind"] == "blue":
+				_draw_blue_segment(center, rf, rb, sa, ea)
+			else:
+				_draw_block_segment(center, rf, rb, sa, ea)
+
+func _draw_ring(center: Vector2, rf: float, rb: float) -> void:
+	var thickness: float = rb - rf
+	_draw_ring_slice(center, rf, rb, 0.0, TAU_F, Color(0.02, 0.25, 0.32))
+	_draw_ring_slice(center, rf + thickness * 0.3, rf + thickness * 0.7, 0.0, TAU_F, Color(0.03, 0.55, 0.60))
+	draw_arc(center, rb, 0.0, TAU_F, 120, Color(0.28, 0.93, 1.0), max(2.0, thickness * 0.08))
+	draw_arc(center, rf, 0.0, TAU_F, 120, Color(0.02, 0.18, 0.25), max(1.5, thickness * 0.05))
+
+func _draw_block_segment(center: Vector2, rf: float, rb: float, sa: float, ea: float) -> void:
+	var thickness: float = rb - rf
+	var t1: float = rf + thickness * 0.33
+	var t2: float = rf + thickness * 0.66
+	_draw_ring_slice(center, rf, rf + max(2.0, thickness * 0.12), sa, ea, Color(0.16, 0.06, 0.02))
+	_draw_ring_slice(center, rf, t1, sa, ea, Color(0.42, 0.16, 0.06))
+	_draw_ring_slice(center, t1, t2, sa, ea, Color(0.54, 0.24, 0.09))
+	_draw_ring_slice(center, t2, rb, sa, ea, Color(0.72, 0.34, 0.16))
+	draw_arc(center, rb, sa, ea, 22, Color(0.87, 0.53, 0.27), max(3.0, thickness * 0.1))
+	draw_arc(center, rf, sa, ea, 22, Color(0.16, 0.06, 0.02), max(2.0, thickness * 0.06))
+
+func _draw_blue_segment(center: Vector2, rf: float, rb: float, sa: float, ea: float) -> void:
+	var thickness: float = rb - rf
+	var blue_outer: float = rb
+	var blue_inner: float = rb - thickness * 0.72
+	var t1: float = blue_outer - thickness * 0.24
+	var t2: float = blue_outer - thickness * 0.48
+	_draw_ring_slice(center, blue_inner, blue_inner + 1.0, sa, ea, Color(0.02, 0.22, 0.28))
+	_draw_ring_slice(center, t1, blue_outer, sa, ea, Color(0.04, 0.74, 0.80))
+	_draw_ring_slice(center, t2, t1, sa, ea, Color(0.02, 0.55, 0.62))
+	_draw_ring_slice(center, blue_inner, t2, sa, ea, Color(0.02, 0.34, 0.40))
+	draw_arc(center, blue_outer, sa, ea, 22, Color(0.28, 0.93, 1.0), max(2.5, thickness * 0.06))
 
 func _draw_coins() -> void:
-	var center := _screen_center()
+	var center: Vector2 = _screen_center()
 	for coin in coins:
-		var pos := center + Vector2(cos(coin["angle"]), sin(coin["angle"])) * _radius_for_z(coin["z"])
-		var size := 8.0 + _radius_for_z(coin["z"]) * 0.018
-		draw_circle(pos, size, Color(1.0, 0.84, 0.15))
-		draw_circle(pos, size * 0.42, Color(0.82, 0.62, 0.08))
+		var pos: Vector2 = center + Vector2(cos(float(coin["angle"])), sin(float(coin["angle"]))) * _radius_for_z(float(coin["z"]))
+		var size: float = 2.0 + pow(max(0.0, float(coin["z"])), 1.8) * 20.0
+		draw_circle(pos, size + 2.0, Color(0.04, 0.06, 0.12))
+		draw_circle(pos, size, Color(1.0, 0.84, 0.12))
+		draw_circle(pos, size * 0.35, Color(0.84, 0.66, 0.08))
 
 func _draw_particles() -> void:
 	for p in particles:
-		draw_circle(p["pos"], 3.0, Color(1.0, 0.9, 0.5, clampf(p["life"] * 2.0, 0.0, 1.0)))
+		var pos: Vector2 = p["pos"]
+		draw_circle(pos, 3.0, Color(1.0, 0.92, 0.5, clampf(float(p["life"]) * 2.0, 0.0, 1.0)))
+
+func _draw_ring_slice(center: Vector2, inner_r: float, outer_r: float, a0: float, a1: float, color: Color) -> void:
+	var pts: PackedVector2Array = PackedVector2Array()
+	var steps: int = max(6, int(abs(a1 - a0) * 24.0 / TAU_F) + 2)
+	for i in range(steps + 1):
+		var t: float = float(i) / float(steps)
+		var a: float = lerpf(a0, a1, t)
+		pts.append(center + Vector2(cos(a), sin(a)) * outer_r)
+	for i in range(steps, -1, -1):
+		var t2: float = float(i) / float(steps)
+		var a2: float = lerpf(a0, a1, t2)
+		pts.append(center + Vector2(cos(a2), sin(a2)) * inner_r)
+	draw_colored_polygon(pts, color)
+
+func _background_color() -> Color:
+	return Color.from_hsv(tunnel_hue / 360.0, 0.42, 0.08)
 
 func _radius_for_z(z: float) -> float:
-	var t := clampf(z, 0.0, 1.0)
-	var near_r := 420.0
-	var far_r := 52.0
-	return lerpf(far_r, near_r, pow(t, 1.45))
+	var t: float = clampf(z, 0.0, 1.06)
+	return _inner_radius() + (_outer_radius() - _inner_radius()) * pow(t, 1.8)
+
+func _outer_radius() -> float:
+	var size: Vector2 = get_viewport_rect().size
+	return min(size.x * 0.45, size.y * 0.31)
+
+func _inner_radius() -> float:
+	return _outer_radius() * 0.125
 
 func _screen_center() -> Vector2:
-	var size := get_viewport_rect().size
-	return Vector2(size.x * 0.5, size.y * 0.47)
+	var size: Vector2 = get_viewport_rect().size
+	return Vector2(size.x * 0.5, size.y * 0.42)
 
 func _sector_for_angle(angle: float) -> int:
-	var normalized := wrapf(angle, 0.0, TAU_F)
-	return int(floor(normalized / (TAU_F / float(SECTORS))))
+	var normalized: float = wrapf(angle, 0.0, TAU_F)
+	return int(floor(normalized / _sector_size()))
 
 func _angle_for_sector(sector: int) -> float:
-	return (float(sector) + 0.5) * (TAU_F / float(SECTORS))
+	return (float(sector) + 0.5) * _sector_size()
+
+func _sector_size() -> float:
+	return TAU_F / float(SECTORS)
 
 func _load_record() -> void:
-	var config := ConfigFile.new()
+	var config: ConfigFile = ConfigFile.new()
 	if config.load(SAVE_PATH) == OK:
 		record = int(config.get_value("save", "record", 0))
 
 func _save_record() -> void:
-	var config := ConfigFile.new()
+	var config: ConfigFile = ConfigFile.new()
 	config.set_value("save", "record", record)
 	config.save(SAVE_PATH)

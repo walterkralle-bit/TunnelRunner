@@ -12,6 +12,7 @@ Erster Godot-4-Prototyp für Tunnel Runner.
 - neuer separater Godot-Prototyp, HTML-Build bleibt erhalten
 - Pseudo-3D-Tunnel per `_draw()`
 - Lenken auf Ringbahn
+- Steuerrad-artige Touch-Steuerung unten im UI
 - Sprung
 - Hindernisse / Coins / Score / Game Over
 - einfacher Mobile-Touch-Jump-Button

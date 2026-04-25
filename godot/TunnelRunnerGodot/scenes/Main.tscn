@@ -1,6 +1,44 @@
-[gd_scene load_steps=2 format=3 uid="uid://b0q1j3ng3v6t1"]
+[gd_scene load_steps=6 format=3 uid="uid://b0q1j3ng3v6t1"]
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1_mainscript"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wheel"]
+bg_color = Color(0.29, 0.1, 0.42, 1)
+border_width_left = 6
+border_width_top = 6
+border_width_right = 6
+border_width_bottom = 6
+border_color = Color(0.42, 0.35, 0.55, 1)
+corner_radius_top_left = 160
+corner_radius_top_right = 160
+corner_radius_bottom_right = 160
+corner_radius_bottom_left = 160
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jump"]
+bg_color = Color(0.73, 0.38, 0.88, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 1, 1, 0.45)
+corner_radius_top_left = 64
+corner_radius_top_right = 64
+corner_radius_bottom_right = 64
+corner_radius_bottom_left = 64
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_overlay"]
+bg_color = Color(0.03, 0.04, 0.1, 0.9)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.0, 0.53, 0.8, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_mainscript")
@@ -8,29 +46,78 @@ script = ExtResource("1_mainscript")
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="ScoreLabel" type="Label" parent="UI"]
-offset_left = 36.0
-offset_top = 28.0
-offset_right = 360.0
-offset_bottom = 90.0
-theme_override_font_sizes/font_size = 42
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 240.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 34
 text = "0"
 
 [node name="RecordLabel" type="Label" parent="UI"]
-offset_left = 36.0
-offset_top = 88.0
-offset_right = 420.0
-offset_bottom = 132.0
-theme_override_font_sizes/font_size = 24
+offset_left = 26.0
+offset_top = 56.0
+offset_right = 240.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 18
 text = "Record: 0"
 
 [node name="CoinLabel" type="Label" parent="UI"]
-offset_left = 840.0
-offset_top = 28.0
-offset_right = 1040.0
-offset_bottom = 90.0
-theme_override_font_sizes/font_size = 36
+offset_left = 820.0
+offset_top = 16.0
+offset_right = 1044.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 2
 text = "🪙 0"
+
+[node name="ControlsRoot" type="Control" parent="UI"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -320.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="WheelArea" type="Panel" parent="UI/ControlsRoot"]
+offset_left = 110.0
+offset_top = 10.0
+offset_right = 390.0
+offset_bottom = 290.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_wheel")
+
+[node name="WheelCrossH" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
+offset_left = 36.0
+offset_top = 139.0
+offset_right = 244.0
+offset_bottom = 141.0
+color = Color(0.78, 0.39, 1, 0.18)
+
+[node name="WheelCrossV" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
+offset_left = 139.0
+offset_top = 36.0
+offset_right = 141.0
+offset_bottom = 244.0
+color = Color(0.78, 0.39, 1, 0.18)
+
+[node name="WheelIndicator" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
+offset_left = 137.0
+offset_top = 20.0
+offset_right = 143.0
+offset_bottom = 52.0
+color = Color(1, 1, 1, 1)
+
+[node name="JumpButton" type="Button" parent="UI/ControlsRoot"]
+offset_left = 850.0
+offset_top = 100.0
+offset_right = 1010.0
+offset_bottom = 260.0
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("StyleBoxFlat_jump")
+theme_override_styles/hover = SubResource("StyleBoxFlat_jump")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_jump")
+text = "JUMP"
 
 [node name="Overlay" type="Control" parent="UI"]
 layout_mode = 3
@@ -41,14 +128,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
 
-[node name="Panel" type="ColorRect" parent="UI/Overlay"]
+[node name="Panel" type="Panel" parent="UI/Overlay"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.03, 0.09, 0.88)
+theme_override_styles/panel = SubResource("StyleBoxFlat_overlay")
 
 [node name="CenterBox" type="VBoxContainer" parent="UI/Overlay"]
 layout_mode = 1
@@ -73,36 +160,32 @@ text = "TUNNEL RUNNER"
 
 [node name="Subtitle" type="Label" parent="UI/Overlay/CenterBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
-text = "Godot prototype"
+text = "Godot port in progress"
 
 [node name="Hint1" type="Label" parent="UI/Overlay/CenterBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
-text = "← / → oder A / D = Lenken"
+text = "Steuerrad drehen = Position im Tunnel"
 
 [node name="Hint2" type="Label" parent="UI/Overlay/CenterBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
-text = "Space / Tap = Springen"
+text = "Jump-Button / Space = Springen"
 
 [node name="StateLabel" type="Label" parent="UI/Overlay/CenterBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 text = "Ausweichen, springen, Coins sammeln"
 
 [node name="StartButton" type="Button" parent="UI/Overlay/CenterBox"]
 layout_mode = 2
 size_flags_horizontal = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
 text = "START"
-
-[node name="TouchJumpButton" type="Button" parent="UI"]
-offset_left = 860.0
-offset_top = 1650.0
-offset_right = 1020.0
-offset_bottom = 1810.0
-text = "JUMP"
