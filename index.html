@@ -251,34 +251,21 @@ function drawPlayer(){
   const shadowY=CY+Math.sin(pAng)*shadowR;
   const lift=Math.max(0,jOff()/CFG.jumpHeight);
   
-  // Permanent contact shadow / wall marker makes position and timing easier to read
+  // Contact shadow / wall marker — always visible, helps judge distance to obstacles
   cx.save();
   cx.translate(shadowX,shadowY);
   cx.rotate(pAng+Math.PI/2);
-  cx.scale(1,.55+.2*lift);
+  cx.scale(1,.6);
   cx.beginPath();
-  cx.arc(0,0,sz*(.8-.12*lift),0,Math.PI*2);
-  cx.fillStyle=`rgba(0,0,0,${.3-.08*lift})`;
+  cx.arc(0,0,sz*.84,0,Math.PI*2);
+  cx.fillStyle='rgba(0,0,0,.28)';
   cx.fill();
   cx.beginPath();
-  cx.arc(0,0,sz*(.98-.08*lift),0,Math.PI*2);
-  cx.strokeStyle=`rgba(120,220,255,${.34-.1*lift})`;
+  cx.arc(0,0,sz*.98,0,Math.PI*2);
+  cx.strokeStyle='rgba(120,220,255,.32)';
   cx.lineWidth=Math.max(2.2,sz*.095);
   cx.stroke();
   cx.restore();
-  
-  // Long trail going INTO the tunnel (fades toward center = depth)
-  // This is key for the "driving forward" feeling
-  for(let t=1;t<=6;t++){
-    const trailZ=CFG.playerZ-jOff()-.03*t;
-    if(trailZ<.05)break;
-    const tr=z2r(trailZ);
-    const tAlpha=.35-t*.05;
-    const tWidth=sz*(.6-t*.06);
-    if(tAlpha<=0||tWidth<=0)break;
-    cx.beginPath();cx.arc(CX,CY,tr,pAng-.08,pAng+.08);
-    cx.strokeStyle=`rgba(30,80,140,${tAlpha})`;cx.lineWidth=tWidth;cx.lineCap='round';cx.stroke();
-  }
   
   // Glow under wheel
   const gl=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,sz*1.5);
