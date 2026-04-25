@@ -152,8 +152,40 @@ function z2r(z){
 }
 
 // ==================== AUDIO ====================
+const SOUND_PREF_KEY='tunnelRunnerSoundEnabled';
+let soundEnabled=true;
+try{
+  const saved=localStorage.getItem(SOUND_PREF_KEY);
+  if(saved!==null)soundEnabled=saved==='1';
+}catch{}
+
 let audioCtx=null,audioMaster=null,audioReady=false,audioNoiseBuffer=null;
 let tunnelNoiseSource=null,tunnelNoiseFilter=null,tunnelNoiseGain=null,tunnelDroneOsc=null,tunnelDroneGain=null;
+
+function saveSoundPref(){try{localStorage.setItem(SOUND_PREF_KEY,soundEnabled?'1':'0')}catch{}}
+function getSoundLabel(){return soundEnabled?'TON: AN':'TON: AUS'}
+
+function refreshPauseMenuSoundButton(){
+  const btn=document.getElementById('soundToggleBtn');
+  if(btn)btn.textContent=getSoundLabel();
+}
+
+function setAudioEnabled(enabled){
+  soundEnabled=!!enabled;
+  saveSoundPref();
+  refreshPauseMenuSoundButton();
+  if(audioReady){
+    const now=audioCtx.currentTime;
+    const target=soundEnabled?.6:.0001;
+    audioMaster.gain.cancelScheduledValues(now);
+    audioMaster.gain.setTargetAtTime(target,now,.08);
+  }
+}
+
+function toggleSound(){
+  setAudioEnabled(!soundEnabled);
+  if(soundEnabled)resumeAudio();
+}
 
 function ensureAudio(){
   if(audioReady)return true;
@@ -161,21 +193,20 @@ function ensureAudio(){
   if(!AC)return false;
   audioCtx=new AC();
   audioMaster=audioCtx.createGain();
-  audioMaster.gain.value=.6;
+  audioMaster.gain.value=soundEnabled?.6:.0001;
   audioMaster.connect(audioCtx.destination);
 
   const len=Math.max(1,Math.floor(audioCtx.sampleRate*1.5));
   audioNoiseBuffer=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
   const data=audioNoiseBuffer.getChannelData(0);
-  for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.7;
+  for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.55;
 
   tunnelNoiseSource=audioCtx.createBufferSource();
   tunnelNoiseSource.buffer=audioNoiseBuffer;
   tunnelNoiseSource.loop=true;
   tunnelNoiseFilter=audioCtx.createBiquadFilter();
-  tunnelNoiseFilter.type='bandpass';
-  tunnelNoiseFilter.frequency.value=240;
-  tunnelNoiseFilter.Q.value=.8;
+  tunnelNoiseFilter.type='highpass';
+  tunnelNoiseFilter.frequency.value=520;
   tunnelNoiseGain=audioCtx.createGain();
   tunnelNoiseGain.gain.value=0;
   tunnelNoiseSource.connect(tunnelNoiseFilter);
@@ -184,8 +215,8 @@ function ensureAudio(){
   tunnelNoiseSource.start();
 
   tunnelDroneOsc=audioCtx.createOscillator();
-  tunnelDroneOsc.type='triangle';
-  tunnelDroneOsc.frequency.value=58;
+  tunnelDroneOsc.type='sine';
+  tunnelDroneOsc.frequency.value=78;
   tunnelDroneGain=audioCtx.createGain();
   tunnelDroneGain.gain.value=0;
   tunnelDroneOsc.connect(tunnelDroneGain);
@@ -197,12 +228,14 @@ function ensureAudio(){
 }
 
 function resumeAudio(){
-  if(!ensureAudio())return;
+  if(!soundEnabled)return false;
+  if(!ensureAudio())return false;
   if(audioCtx.state==='suspended')audioCtx.resume();
+  return true;
 }
 
-function pulseTone(type,freqStart,freqEnd,duration,volume,when=0){
-  if(!ensureAudio())return;
+function pulseTone(type,freqStart,freqEnd,duration,volume,when=0,filterType='lowpass',q=.7){
+  if(!soundEnabled||!ensureAudio())return;
   const now=audioCtx.currentTime+when;
   const osc=audioCtx.createOscillator();
   const gain=audioCtx.createGain();
@@ -210,30 +243,31 @@ function pulseTone(type,freqStart,freqEnd,duration,volume,when=0){
   osc.type=type;
   osc.frequency.setValueAtTime(freqStart,now);
   osc.frequency.exponentialRampToValueAtTime(Math.max(20,freqEnd),now+duration);
-  filter.type='lowpass';
-  filter.frequency.setValueAtTime(Math.max(freqStart,freqEnd)*2.4,now);
+  filter.type=filterType;
+  filter.Q.value=q;
+  filter.frequency.setValueAtTime(Math.max(freqStart,freqEnd)*2.1,now);
   gain.gain.setValueAtTime(.0001,now);
-  gain.gain.exponentialRampToValueAtTime(volume,now+.01);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.008);
   gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
   osc.connect(filter);
   filter.connect(gain);
   gain.connect(audioMaster);
   osc.start(now);
-  osc.stop(now+duration+.02);
+  osc.stop(now+duration+.03);
 }
 
-function noiseBurst(duration,volume,filterFreq){
-  if(!ensureAudio())return;
+function noiseBurst(duration,volume,filterFreq,filterType='bandpass'){
+  if(!soundEnabled||!ensureAudio())return;
   const now=audioCtx.currentTime;
   const src=audioCtx.createBufferSource();
   src.buffer=audioNoiseBuffer;
   const filter=audioCtx.createBiquadFilter();
-  filter.type='bandpass';
+  filter.type=filterType;
   filter.frequency.value=filterFreq;
-  filter.Q.value=.9;
+  filter.Q.value=1.1;
   const gain=audioCtx.createGain();
   gain.gain.setValueAtTime(.0001,now);
-  gain.gain.exponentialRampToValueAtTime(volume,now+.01);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.006);
   gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
   src.connect(filter);
   filter.connect(gain);
@@ -242,22 +276,39 @@ function noiseBurst(duration,volume,filterFreq){
   src.stop(now+duration+.03);
 }
 
-function playJumpSound(){resumeAudio();pulseTone('square',460,170,.16,.045);pulseTone('triangle',220,110,.18,.03,.02)}
-function playCoinSound(){resumeAudio();pulseTone('triangle',880,1320,.08,.05);pulseTone('sine',1320,1760,.07,.035,.03)}
-function playCrashSound(){resumeAudio();noiseBurst(.28,.08,180);pulseTone('sawtooth',190,48,.32,.06);pulseTone('square',120,42,.24,.04,.04)}
+function playJumpSound(){
+  if(!resumeAudio())return;
+  pulseTone('sawtooth',210,140,.08,.028,0,'bandpass',1.2);
+  pulseTone('triangle',160,92,.14,.032,.018,'lowpass',.6);
+  noiseBurst(.045,.012,900,'highpass');
+}
+
+function playCoinSound(){
+  if(!resumeAudio())return;
+  pulseTone('triangle',980,1240,.07,.038,0,'lowpass',.5);
+  pulseTone('sine',1240,1660,.08,.05,.028,'lowpass',.4);
+  pulseTone('triangle',1660,2210,.09,.042,.055,'lowpass',.4);
+}
+
+function playCrashSound(){
+  if(!resumeAudio())return;
+  noiseBurst(.24,.075,210,'bandpass');
+  pulseTone('sawtooth',170,46,.28,.055,0,'lowpass',.8);
+  pulseTone('triangle',96,38,.22,.03,.03,'lowpass',.7);
+}
 
 function updateTunnelAudio(){
   if(!audioReady)return;
-  const active=run&&!paused&&!over;
+  const active=soundEnabled&&run&&!paused&&!over;
   const now=audioCtx.currentTime;
-  const targetNoise=active?Math.min(.055,.018+spd*.012):.0001;
-  const targetDrone=active?Math.min(.026,.008+spd*.006):.0001;
+  const targetNoise=active?Math.min(.018,.005+spd*.004):.0001;
+  const targetDrone=active?Math.min(.012,.003+spd*.0025):.0001;
   tunnelNoiseGain.gain.cancelScheduledValues(now);
-  tunnelNoiseGain.gain.setTargetAtTime(targetNoise,now,.12);
+  tunnelNoiseGain.gain.setTargetAtTime(targetNoise,now,.2);
   tunnelDroneGain.gain.cancelScheduledValues(now);
-  tunnelDroneGain.gain.setTargetAtTime(targetDrone,now,.18);
-  tunnelNoiseFilter.frequency.setTargetAtTime(210+spd*55,now,.18);
-  tunnelDroneOsc.frequency.setTargetAtTime(52+spd*10,now,.2);
+  tunnelDroneGain.gain.setTargetAtTime(targetDrone,now,.24);
+  tunnelNoiseFilter.frequency.setTargetAtTime(480+spd*85,now,.22);
+  tunnelDroneOsc.frequency.setTargetAtTime(74+spd*8,now,.25);
 }
 
 // ==================== TUNNEL ====================
@@ -928,7 +979,7 @@ function endGame(){
 function showPauseMenu(){
   paused=true;
   ov.classList.remove('hidden');
-  ov.innerHTML=`<div style="margin-top:auto;width:100%;padding:0 0 28px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><h2 style="margin-bottom:18px;color:#9fd8ff">PAUSE</h2><div style="display:flex;gap:12px"><button class="btn" onclick="resumeGame()">FORTFAHREN</button><button class="btn" onclick="endGame()">ENDE</button></div></div>`;
+  ov.innerHTML=`<div style="margin-top:auto;width:100%;padding:0 0 28px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><h2 style="margin-bottom:18px;color:#9fd8ff">PAUSE</h2><div style="display:flex;flex-direction:column;gap:12px;align-items:center"><div style="display:flex;gap:12px"><button class="btn" onclick="resumeGame()">FORTFAHREN</button><button class="btn" onclick="endGame()">ENDE</button></div><button class="btn" id="soundToggleBtn" onclick="toggleSound()">${getSoundLabel()}</button></div></div>`;
 }
 
 function resumeGame(){
