@@ -935,14 +935,12 @@ function drawSingleObs(o){
   const zDepth=o.type==='block'?blockDepth:ringDepth;
   
   const rf=z2r(o.z);
-  const rb=z2r(Math.min(1.1,o.z+zDepth));
+  const rb=Math.min(OR,z2r(Math.min(1.1,o.z+zDepth)));
   const thickness=rb-rf;
   const frontWeight=Math.max(1,thickness*.1);
+  const exitCap=rb>OR-1||thickness<22;
   
   if(rf<10||thickness<2)return;
-  const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
-  if(fade<.01)return;
-  cx.globalAlpha=fade;
   
   if(o.type==='ring'){
     // === MASSIVE 3D RING ===
@@ -980,60 +978,78 @@ function drawSingleObs(o){
     const outerBack=Math.max(innerFront+1, rb-thickness*.24);
     const bevel=Math.min(.045, o.arcSize*.16);
 
-    // back body
-    cx.beginPath();
-    cx.arc(CX,CY,outerBack,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#6e3016';cx.fill();
-
-    // front face, brighter and flatter like inserted wedge block
-    cx.beginPath();
-    cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.arc(CX,CY,innerFront,ea-bevel,sa+bevel,true);
-    cx.closePath();
-    cx.fillStyle='#c87445';cx.fill();
-
-    // darker side bevel strips
-    for(const pair of [[sa,sa+bevel],[ea-bevel,ea]]){
+    if(exitCap){
       cx.beginPath();
-      cx.arc(CX,CY,outerFront,pair[0],pair[1]);
-      cx.arc(CX,CY,rf,pair[1],pair[0],true);
-      cx.closePath();
+      cx.arc(CX,CY,outerFront,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
       cx.fillStyle='#8c4322';cx.fill();
+
+      const capInner=Math.max(rf+1, outerFront-thickness*.52);
+      cx.beginPath();
+      cx.arc(CX,CY,outerFront,sa+.01,ea-.01);
+      cx.arc(CX,CY,capInner,ea-.01,sa+.01,true);
+      cx.closePath();
+      cx.fillStyle='#c87445';cx.fill();
+
+      cx.beginPath();cx.arc(CX,CY,outerFront,sa+.01,ea-.01);
+      cx.strokeStyle='rgba(230,175,125,.55)';cx.lineWidth=Math.max(1.3,thickness*.04);cx.stroke();
+      cx.beginPath();cx.arc(CX,CY,rf,sa,ea);
+      cx.strokeStyle='rgba(82,32,14,.42)';cx.lineWidth=Math.max(1.1,thickness*.03);cx.stroke();
+    }else{
+      // back body
+      cx.beginPath();
+      cx.arc(CX,CY,outerBack,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+      cx.fillStyle='#6e3016';cx.fill();
+
+      // front face, brighter and flatter like inserted wedge block
+      cx.beginPath();
+      cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
+      cx.arc(CX,CY,innerFront,ea-bevel,sa+bevel,true);
+      cx.closePath();
+      cx.fillStyle='#c87445';cx.fill();
+
+      // darker side bevel strips
+      for(const pair of [[sa,sa+bevel],[ea-bevel,ea]]){
+        cx.beginPath();
+        cx.arc(CX,CY,outerFront,pair[0],pair[1]);
+        cx.arc(CX,CY,rf,pair[1],pair[0],true);
+        cx.closePath();
+        cx.fillStyle='#8c4322';cx.fill();
+      }
+
+      // front outline softer and more realistic, less neon-like
+      cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
+      cx.strokeStyle='rgba(225,165,115,.45)';cx.lineWidth=Math.max(1.1,thickness*.035);cx.stroke();
+
+      // outer shadow lip so the outside edge feels thicker and less flat
+      cx.beginPath();cx.arc(CX,CY,outerFront-frontWeight*.95,sa+bevel*.95,ea-bevel*.95);
+      cx.strokeStyle='rgba(88,38,18,.18)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+
+      // inner front shadow to separate face from body
+      cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
+      cx.strokeStyle='rgba(80,30,12,.28)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
+
+      // subtle center plane highlight like the original chunky pieces
+      cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
+      cx.strokeStyle='rgba(255,220,180,.06)';cx.lineWidth=Math.max(1,thickness*.016);cx.stroke();
+
+      // remove hard radial seams almost completely, keep only a very soft corner suggestion
+      for(const edgeA of[sa,ea]){
+        const ex=CX+Math.cos(edgeA)*(outerFront-frontWeight*.5);
+        const ey=CY+Math.sin(edgeA)*(outerFront-frontWeight*.5);
+        const ex2=CX+Math.cos(edgeA)*(outerFront-frontWeight*.08);
+        const ey2=CY+Math.sin(edgeA)*(outerFront-frontWeight*.08);
+        cx.beginPath();cx.moveTo(ex,ey);cx.lineTo(ex2,ey2);
+        cx.strokeStyle='rgba(70,30,14,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
+      }
+
+      // tiny perspective notch so it reads more as a wedge than a painted ring slice
+      const nx1=CX+Math.cos(midA)*(innerFront+thickness*.05);
+      const ny1=CY+Math.sin(midA)*(innerFront+thickness*.05);
+      const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
+      const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
+      cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
+      cx.strokeStyle='rgba(120,55,24,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
     }
-
-    // front outline softer and more realistic, less neon-like
-    cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(225,165,115,.45)';cx.lineWidth=Math.max(1.1,thickness*.035);cx.stroke();
-
-    // outer shadow lip so the outside edge feels thicker and less flat
-    cx.beginPath();cx.arc(CX,CY,outerFront-frontWeight*.95,sa+bevel*.95,ea-bevel*.95);
-    cx.strokeStyle='rgba(88,38,18,.18)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
-
-    // inner front shadow to separate face from body
-    cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(80,30,12,.28)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
-
-    // subtle center plane highlight like the original chunky pieces
-    cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
-    cx.strokeStyle='rgba(255,220,180,.06)';cx.lineWidth=Math.max(1,thickness*.016);cx.stroke();
-
-    // remove hard radial seams almost completely, keep only a very soft corner suggestion
-    for(const edgeA of[sa,ea]){
-      const ex=CX+Math.cos(edgeA)*(outerFront-frontWeight*.5);
-      const ey=CY+Math.sin(edgeA)*(outerFront-frontWeight*.5);
-      const ex2=CX+Math.cos(edgeA)*(outerFront-frontWeight*.08);
-      const ey2=CY+Math.sin(edgeA)*(outerFront-frontWeight*.08);
-      cx.beginPath();cx.moveTo(ex,ey);cx.lineTo(ex2,ey2);
-      cx.strokeStyle='rgba(70,30,14,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
-    }
-
-    // tiny perspective notch so it reads more as a wedge than a painted ring slice
-    const nx1=CX+Math.cos(midA)*(innerFront+thickness*.05);
-    const ny1=CY+Math.sin(midA)*(innerFront+thickness*.05);
-    const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
-    const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
-    cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
-    cx.strokeStyle='rgba(120,55,24,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
@@ -1042,14 +1058,21 @@ function drawSingleObs(o){
     const blueOuter=rb;
     const blueInner=rb-blueThickness;
     const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
-    cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
-    cx.fillStyle='#043848';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
-    cx.fillStyle='#0bbccc';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
-    cx.fillStyle='#088898';cx.fill();
-    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
-    cx.fillStyle='#055868';cx.fill();
+    if(exitCap){
+      cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
+      cx.fillStyle='#077286';cx.fill();
+      cx.beginPath();cx.arc(CX,CY,blueOuter,sa+.004,ea-.004);cx.arc(CX,CY,Math.max(blueInner+thickness*.38,blueInner+1),ea-.004,sa+.004,true);cx.closePath();
+      cx.fillStyle='#0ecedf';cx.fill();
+    }else{
+      cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
+      cx.fillStyle='#043848';cx.fill();
+      cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+      cx.fillStyle='#0bbccc';cx.fill();
+      cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+      cx.fillStyle='#088898';cx.fill();
+      cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
+      cx.fillStyle='#055868';cx.fill();
+    }
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
     cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
@@ -1059,7 +1082,6 @@ function drawSingleObs(o){
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
   }
-  cx.globalAlpha=1;
 }
 
 function drawSingleCoin(c){
