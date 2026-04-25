@@ -130,11 +130,17 @@ const PERSPECTIVE_DEPTH_NEAR=1;
 const PERSPECTIVE_DEPTH_FAR=OR/IR;
 const PERSPECTIVE_DEPTH_SPAN=PERSPECTIVE_DEPTH_FAR-PERSPECTIVE_DEPTH_NEAR;
 const PERSPECTIVE_FALLOFF=1.5;
+const PERSPECTIVE_NEAR_EXTENSION=1.35;
+const PERSPECTIVE_MIN_DEPTH=.16;
 
 function projectDepth(z){
-  const clamped=Math.max(0,Math.min(1,z));
-  const depthT=Math.pow(1-clamped,PERSPECTIVE_FALLOFF);
-  return PERSPECTIVE_DEPTH_NEAR+PERSPECTIVE_DEPTH_SPAN*depthT;
+  if(z<=1){
+    const clamped=Math.max(0,Math.min(1,z));
+    const depthT=Math.pow(1-clamped,PERSPECTIVE_FALLOFF);
+    return PERSPECTIVE_DEPTH_NEAR+PERSPECTIVE_DEPTH_SPAN*depthT;
+  }
+  const over=z-1;
+  return Math.max(PERSPECTIVE_MIN_DEPTH,PERSPECTIVE_DEPTH_NEAR-over*PERSPECTIVE_NEAR_EXTENSION);
 }
 
 function zScale(z){
@@ -940,9 +946,7 @@ function drawSingleObs(o){
   const frontWeight=Math.max(1,thickness*.1);
   
   if(rf<10||thickness<2)return;
-  const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
-  if(fade<.01)return;
-  cx.globalAlpha=fade;
+  if(o.passed&&rf>OR*1.9)return;
   
   if(o.type==='ring'){
     // === MASSIVE 3D RING ===
@@ -1059,7 +1063,6 @@ function drawSingleObs(o){
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
     }
   }
-  cx.globalAlpha=1;
 }
 
 function drawSingleCoin(c){
