@@ -55,6 +55,10 @@ var bands: Array[Dictionary] = []
 @onready var wheel_indicator: ColorRect = $UI/ControlsRoot/WheelWrap/WheelArea/WheelIndicator
 @onready var jump_button: Button = $UI/ControlsRoot/WheelWrap/WheelArea/JumpButton
 
+var wheel_outer_style: StyleBoxFlat
+var wheel_area_style: StyleBoxFlat
+var jump_style: StyleBoxFlat
+
 func _ready() -> void:
 	randomize()
 	_setup_input()
@@ -64,6 +68,14 @@ func _ready() -> void:
 	jump_button.pressed.connect(_on_jump_pressed)
 	wheel_area.gui_input.connect(_on_wheel_gui_input)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	wheel_outer_style = wheel_outer.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	wheel_area_style = wheel_area.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	jump_style = jump_button.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	wheel_outer.add_theme_stylebox_override("panel", wheel_outer_style)
+	wheel_area.add_theme_stylebox_override("panel", wheel_area_style)
+	jump_button.add_theme_stylebox_override("normal", jump_style)
+	jump_button.add_theme_stylebox_override("hover", jump_style)
+	jump_button.add_theme_stylebox_override("pressed", jump_style)
 	if wheel_indicator.get_parent() != controls_root:
 		wheel_indicator.reparent(controls_root)
 	_build_wheel_ticks()
@@ -206,6 +218,7 @@ func _layout_controls() -> void:
 	jump_button.position = Vector2(wheel_size * 0.5 - wheel_size * 0.136, wheel_size * 0.5 - wheel_size * 0.136)
 	jump_button.size = Vector2(wheel_size * 0.272, wheel_size * 0.272)
 	jump_button.add_theme_font_size_override("font_size", int(size.x * 0.045))
+	_apply_wheel_styles(wheel_size, outer_pad)
 	wheel_indicator.size = Vector2(max(6.0, size.x * 0.015), size.x * 0.08)
 	_update_wheel_ticks_layout()
 	_update_wheel_visuals()
@@ -217,6 +230,51 @@ func _update_wheel_visuals() -> void:
 	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * r
 	wheel_indicator.position = pos - wheel_indicator.size * Vector2(0.5, 0.5)
 	wheel_indicator.rotation = player_angle + PI * 0.5
+
+func _apply_wheel_styles(wheel_size: float, outer_pad: float) -> void:
+	if wheel_outer_style != null:
+		var outer_radius: int = int(round((wheel_size + outer_pad * 2.0) * 0.5))
+		wheel_outer_style.corner_radius_top_left = outer_radius
+		wheel_outer_style.corner_radius_top_right = outer_radius
+		wheel_outer_style.corner_radius_bottom_right = outer_radius
+		wheel_outer_style.corner_radius_bottom_left = outer_radius
+		wheel_outer_style.bg_color = Color(0.12, 0.08, 0.20, 1.0)
+		wheel_outer_style.border_width_left = max(2, int(round(wheel_size * 0.018)))
+		wheel_outer_style.border_width_top = wheel_outer_style.border_width_left
+		wheel_outer_style.border_width_right = wheel_outer_style.border_width_left
+		wheel_outer_style.border_width_bottom = wheel_outer_style.border_width_left
+		wheel_outer_style.border_color = Color(0.34, 0.36, 0.22, 0.85)
+		wheel_outer_style.shadow_size = int(round(wheel_size * 0.08))
+		wheel_outer_style.shadow_color = Color(0.58, 0.20, 0.86, 0.28)
+	if wheel_area_style != null:
+		var inner_radius: int = int(round(wheel_size * 0.5))
+		wheel_area_style.corner_radius_top_left = inner_radius
+		wheel_area_style.corner_radius_top_right = inner_radius
+		wheel_area_style.corner_radius_bottom_right = inner_radius
+		wheel_area_style.corner_radius_bottom_left = inner_radius
+		wheel_area_style.bg_color = Color(0.45, 0.07, 0.62, 1.0)
+		wheel_area_style.border_width_left = max(2, int(round(wheel_size * 0.01)))
+		wheel_area_style.border_width_top = wheel_area_style.border_width_left
+		wheel_area_style.border_width_right = wheel_area_style.border_width_left
+		wheel_area_style.border_width_bottom = wheel_area_style.border_width_left
+		wheel_area_style.border_color = Color(0.73, 0.48, 0.90, 0.6)
+	if jump_style != null:
+		var jump_radius: int = int(round(jump_button.size.x * 0.5))
+		jump_style.corner_radius_top_left = jump_radius
+		jump_style.corner_radius_top_right = jump_radius
+		jump_style.corner_radius_bottom_right = jump_radius
+		jump_style.corner_radius_bottom_left = jump_radius
+		jump_style.bg_color = Color(0.78, 0.54, 0.92, 1.0)
+		jump_style.border_width_left = max(2, int(round(wheel_size * 0.01)))
+		jump_style.border_width_top = jump_style.border_width_left
+		jump_style.border_width_right = jump_style.border_width_left
+		jump_style.border_width_bottom = jump_style.border_width_left
+		jump_style.border_color = Color(0.94, 0.84, 1.0, 0.75)
+		jump_style.shadow_size = int(round(wheel_size * 0.05))
+		jump_style.shadow_color = Color(0.72, 0.24, 0.92, 0.35)
+	controls_bg.color = Color(0.07, 0.06, 0.12, 1.0)
+	wheel_cross_h.color = Color(1.0, 0.85, 1.0, 0.22)
+	wheel_cross_v.color = Color(1.0, 0.85, 1.0, 0.22)
 
 func _build_wheel_ticks() -> void:
 	for tick_name in ["TickTop", "TickBottom", "TickLeft", "TickRight"]:
@@ -426,6 +484,8 @@ func _draw() -> void:
 	var rect: Rect2 = Rect2(Vector2.ZERO, get_viewport_rect().size)
 	var bg: Color = _background_color()
 	draw_rect(rect, bg, true)
+	var gameplay_rect: Rect2 = Rect2(Vector2.ZERO, Vector2(get_viewport_rect().size.x, _gameplay_height()))
+	draw_rect(gameplay_rect, bg, true)
 	_draw_tunnel()
 	_draw_obstacles()
 	_draw_coins()
@@ -587,14 +647,17 @@ func _radius_for_z(z: float) -> float:
 
 func _outer_radius() -> float:
 	var size: Vector2 = get_viewport_rect().size
-	return min(size.x * 0.45, size.y * 0.31)
+	return min(size.x * 0.45, _gameplay_height() * 0.41)
 
 func _inner_radius() -> float:
 	return _outer_radius() * 0.125
 
 func _screen_center() -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
-	return Vector2(size.x * 0.5, size.y * 0.42)
+	return Vector2(size.x * 0.5, _gameplay_height() * 0.45)
+
+func _gameplay_height() -> float:
+	return max(220.0, get_viewport_rect().size.y - controls_root.size.y)
 
 func _sector_for_angle(angle: float) -> int:
 	var normalized: float = wrapf(angle, 0.0, TAU_F)
