@@ -160,7 +160,7 @@ try{
   if(saved!==null)soundEnabled=saved==='1';
 }catch{}
 
-let audioCtx=null,audioMaster=null,audioReady=false,audioNoiseBuffer=null;
+let audioCtx=null,audioMaster=null,audioReady=false;
 let tunnelDroneOsc=null,tunnelDroneGain=null;
 
 function saveSoundPref(){try{localStorage.setItem(SOUND_PREF_KEY,soundEnabled?'1':'0')}catch{}}
@@ -240,31 +240,10 @@ function pulseTone(type,freqStart,freqEnd,duration,volume,when=0,filterType='low
   osc.stop(now+duration+.03);
 }
 
-function noiseBurst(duration,volume,filterFreq,filterType='bandpass'){
-  if(!soundEnabled||!ensureAudio())return;
-  const now=audioCtx.currentTime;
-  const src=audioCtx.createBufferSource();
-  src.buffer=audioNoiseBuffer;
-  const filter=audioCtx.createBiquadFilter();
-  filter.type=filterType;
-  filter.frequency.value=filterFreq;
-  filter.Q.value=1.1;
-  const gain=audioCtx.createGain();
-  gain.gain.setValueAtTime(.0001,now);
-  gain.gain.exponentialRampToValueAtTime(volume,now+.006);
-  gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioMaster);
-  src.start(now);
-  src.stop(now+duration+.03);
-}
-
 function playJumpSound(){
   if(!resumeAudio())return;
   pulseTone('sawtooth',210,140,.08,.028,0,'bandpass',1.2);
   pulseTone('triangle',160,92,.14,.032,.018,'lowpass',.6);
-  noiseBurst(.045,.012,900,'highpass');
 }
 
 function playCoinSound(){
@@ -276,7 +255,6 @@ function playCoinSound(){
 
 function playCrashSound(){
   if(!resumeAudio())return;
-  noiseBurst(.24,.075,210,'bandpass');
   pulseTone('sawtooth',170,46,.28,.055,0,'lowpass',.8);
   pulseTone('triangle',96,38,.22,.03,.03,'lowpass',.7);
 }
