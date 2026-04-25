@@ -10,7 +10,10 @@ const SAVE_PATH: String = "user://tunnel_runner_save.cfg"
 const NBANDS: int = 12
 const BSPC: float = 0.11
 const NLONG: int = 24
-const WHEEL_RADIUS: float = 130.0
+const HTML_STEER_SMOOTH: float = 0.105
+const HTML_STEER_MAX: float = 0.095
+const HTML_WHEEL_DEADZONE: float = 25.0
+const HTML_INDICATOR_RADIUS_RATIO: float = 120.0 / 280.0
 
 var score: int = 0
 var record: int = 0
@@ -40,6 +43,7 @@ var bands: Array[Dictionary] = []
 @onready var record_label: Label = $UI/RecordLabel
 @onready var coin_label: Label = $UI/CoinLabel
 @onready var controls_root: Control = $UI/ControlsRoot
+@onready var controls_bg: ColorRect = $UI/ControlsRoot/ControlsBG
 @onready var overlay: Control = $UI/Overlay
 @onready var state_label: Label = $UI/Overlay/CenterBox/StateLabel
 @onready var start_button: Button = $UI/Overlay/CenterBox/StartButton
@@ -60,10 +64,15 @@ func _ready() -> void:
 	jump_button.pressed.connect(_on_jump_pressed)
 	wheel_area.gui_input.connect(_on_wheel_gui_input)
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	if wheel_indicator.get_parent() != controls_root:
+		wheel_indicator.reparent(controls_root)
+	_build_wheel_ticks()
+	jump_button.text = ""
+	jump_button.focus_mode = Control.FOCUS_NONE
 	_reset_run_state()
 	_layout_controls()
 	_update_hud()
-	_update_wheel_indicator()
+	_update_wheel_visuals()
 	queue_redraw()
 
 func _setup_input() -> void:
@@ -131,7 +140,7 @@ func _process(delta: float) -> void:
 	_update_input(delta)
 	if game_running:
 		_update_run(delta)
-	_update_wheel_indicator()
+	_update_wheel_visuals()
 	queue_redraw()
 
 func _on_viewport_size_changed() -> void:
@@ -141,7 +150,9 @@ func _update_input(delta: float) -> void:
 	var turn_input: float = Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")
 	if not wheel_dragging and turn_input != 0.0:
 		target_angle = wrapf(target_angle + turn_input * delta * 3.4, 0.0, TAU_F)
-	player_angle = lerp_angle(player_angle, target_angle, min(1.0, delta * 8.0))
+	var angle_delta: float = atan2(sin(target_angle - player_angle), cos(target_angle - player_angle))
+	var frame_scale: float = delta * 60.0
+	player_angle = wrapf(player_angle + sign(angle_delta) * min(abs(angle_delta) * HTML_STEER_SMOOTH, HTML_STEER_MAX) * frame_scale, 0.0, TAU_F)
 	if Input.is_action_just_pressed("jump"):
 		if not game_running and not game_over:
 			start_run()
@@ -168,15 +179,17 @@ func _on_wheel_gui_input(event: InputEvent) -> void:
 func _set_target_from_wheel(local_pos: Vector2) -> void:
 	var center: Vector2 = wheel_area.size * 0.5
 	var delta: Vector2 = local_pos - center
-	if delta.length() < wheel_area.size.x * 0.09:
+	if delta.length() < HTML_WHEEL_DEADZONE * (wheel_area.size.x / 280.0):
 		return
 	target_angle = wrapf(delta.angle(), 0.0, TAU_F)
+	wheel_area.rotation = target_angle - PI * 0.5
 
 func _layout_controls() -> void:
 	var size: Vector2 = get_viewport_rect().size
 	var controls_h: float = size.x * 0.8
 	controls_root.position = Vector2(0.0, size.y - controls_h)
 	controls_root.size = Vector2(size.x, controls_h)
+	controls_bg.size = controls_root.size
 	var wheel_size: float = size.x * 0.7
 	var outer_pad: float = wheel_size * 0.057
 	wheel_wrap.position = Vector2((size.x - wheel_size) * 0.5, (controls_h - wheel_size) * 0.5)
@@ -185,6 +198,7 @@ func _layout_controls() -> void:
 	wheel_outer.size = Vector2(wheel_size + outer_pad * 2.0, wheel_size + outer_pad * 2.0)
 	wheel_area.position = Vector2.ZERO
 	wheel_area.size = Vector2(wheel_size, wheel_size)
+	wheel_area.pivot_offset = wheel_area.size * 0.5
 	wheel_cross_h.position = Vector2(wheel_size * 0.12, wheel_size * 0.5 - 1.0)
 	wheel_cross_h.size = Vector2(wheel_size * 0.76, 2.0)
 	wheel_cross_v.position = Vector2(wheel_size * 0.5 - 1.0, wheel_size * 0.12)
@@ -193,13 +207,46 @@ func _layout_controls() -> void:
 	jump_button.size = Vector2(wheel_size * 0.272, wheel_size * 0.272)
 	jump_button.add_theme_font_size_override("font_size", int(size.x * 0.045))
 	wheel_indicator.size = Vector2(max(6.0, size.x * 0.015), size.x * 0.08)
+	_update_wheel_ticks_layout()
+	_update_wheel_visuals()
 
-func _update_wheel_indicator() -> void:
-	var center: Vector2 = wheel_wrap.position + wheel_area.position + wheel_area.size * 0.5
-	var r: float = wheel_area.size.x * 0.46
-	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * (r - 24.0)
-	wheel_indicator.position = pos - wheel_wrap.position - wheel_area.position - wheel_indicator.size * Vector2(0.5, 0.25)
+func _update_wheel_visuals() -> void:
+	wheel_area.rotation = target_angle - PI * 0.5
+	var center: Vector2 = Vector2(controls_root.size.x * 0.5, controls_root.size.y * 0.5)
+	var r: float = wheel_area.size.x * HTML_INDICATOR_RADIUS_RATIO
+	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * r
+	wheel_indicator.position = pos - wheel_indicator.size * Vector2(0.5, 0.5)
 	wheel_indicator.rotation = player_angle + PI * 0.5
+
+func _build_wheel_ticks() -> void:
+	for tick_name in ["TickTop", "TickBottom", "TickLeft", "TickRight"]:
+		if wheel_area.has_node(tick_name):
+			continue
+		var tick: ColorRect = ColorRect.new()
+		tick.name = tick_name
+		tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tick.color = Color(1.0, 1.0, 1.0, 0.6)
+		wheel_area.add_child(tick)
+
+func _update_wheel_ticks_layout() -> void:
+	var tick_t := wheel_area.get_node_or_null("TickTop") as Control
+	var tick_b := wheel_area.get_node_or_null("TickBottom") as Control
+	var tick_l := wheel_area.get_node_or_null("TickLeft") as Control
+	var tick_r := wheel_area.get_node_or_null("TickRight") as Control
+	if tick_t == null or tick_b == null or tick_l == null or tick_r == null:
+		return
+	var wheel_size: float = wheel_area.size.x
+	var thin: float = max(2.0, wheel_size * (2.0 / 280.0))
+	var long_h: float = wheel_size * (14.0 / 280.0)
+	var inset: float = wheel_size * (6.0 / 280.0)
+	tick_t.position = Vector2(wheel_size * 0.5 - thin * 0.5, inset)
+	tick_t.size = Vector2(thin, long_h)
+	tick_b.position = Vector2(wheel_size * 0.5 - thin * 0.5, wheel_size - inset - long_h)
+	tick_b.size = Vector2(thin, long_h)
+	tick_l.position = Vector2(inset, wheel_size * 0.5 - thin * 0.5)
+	tick_l.size = Vector2(long_h, thin)
+	tick_r.position = Vector2(wheel_size - inset - long_h, wheel_size * 0.5 - thin * 0.5)
+	tick_r.size = Vector2(long_h, thin)
 
 func _perform_jump() -> void:
 	if jumping or game_over:
