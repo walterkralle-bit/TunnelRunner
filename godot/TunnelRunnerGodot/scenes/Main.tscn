@@ -1,0 +1,108 @@
+[gd_scene load_steps=2 format=3 uid="uid://b0q1j3ng3v6t1"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_mainscript"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_mainscript")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="UI"]
+offset_left = 36.0
+offset_top = 28.0
+offset_right = 360.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 42
+text = "0"
+
+[node name="RecordLabel" type="Label" parent="UI"]
+offset_left = 36.0
+offset_top = 88.0
+offset_right = 420.0
+offset_bottom = 132.0
+theme_override_font_sizes/font_size = 24
+text = "Record: 0"
+
+[node name="CoinLabel" type="Label" parent="UI"]
+offset_left = 840.0
+offset_top = 28.0
+offset_right = 1040.0
+offset_bottom = 90.0
+theme_override_font_sizes/font_size = 36
+horizontal_alignment = 2
+text = "🪙 0"
+
+[node name="Overlay" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="Panel" type="ColorRect" parent="UI/Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.09, 0.88)
+
+[node name="CenterBox" type="VBoxContainer" parent="UI/Overlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -180.0
+offset_right = 260.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 52
+horizontal_alignment = 1
+text = "TUNNEL RUNNER"
+
+[node name="Subtitle" type="Label" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Godot prototype"
+
+[node name="Hint1" type="Label" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "← / → oder A / D = Lenken"
+
+[node name="Hint2" type="Label" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Space / Tap = Springen"
+
+[node name="StateLabel" type="Label" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Ausweichen, springen, Coins sammeln"
+
+[node name="StartButton" type="Button" parent="UI/Overlay/CenterBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "START"
+
+[node name="TouchJumpButton" type="Button" parent="UI"]
+offset_left = 860.0
+offset_top = 1650.0
+offset_right = 1020.0
+offset_bottom = 1810.0
+text = "JUMP"

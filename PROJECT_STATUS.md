@@ -16,31 +16,30 @@
 
 ## Offene Probleme (Priorität)
 
-### 🔴 HOCH: Perspektive / Rendering
-**Das größte ungelöste Problem.**
-- Aktuelle Formel: `z^1.8` — funktioniert technisch, aber:
-  - Hindernisse werden beim Näherkommen **flacher/niedriger** statt größer
-  - Visuelle Geschwindigkeit: Objekte **zu schnell in der Ferne, zu langsam am Spieler**
-- Ziel: echte `1/z`-Projektion (Pseudo-3D-Racer Stil)
-- Referenz: https://gabrielgambetta.com/computer-graphics-from-scratch/09-perspective-projection.html
-- Referenz: https://jakesgordon.com/writing/javascript-racer-v1-straight/
-
-### 🟡 MITTEL: Sound
-- Noch nicht implementiert
-- Gewünscht: Sprung-Sound, Münzen-Ping, Crash-Boom, Tunnel-Rauschen
-
 ### 🟡 MITTEL: Highscore
 - `localStorage`-Persistenz fehlt noch
 
 ### 🟡 MITTEL: Screen Shake bei Crash
 - Noch nicht implementiert
 
+### 🟡 MITTEL: Gameplay-Feintuning
+- Spawn-Rhythmus weiter testen
+- Lenkgefühl und Flow feinjustieren
+- Fairness in längeren Runs beobachten
+
 ### 🟢 NIEDRIG: App Store / PWA
 - Capacitor-Integration als letzter Schritt
 - Erst wenn Web-Version stabil und getestet
 
 ## Nächster Schritt
-➡️ Stückweise Gameplay-Treue erhöhen: zuerst Flow, Tempo, Spawn-Rhythmus und Lenkgefühl feinjustieren
+➡️ Highscore (`localStorage`) und Screen Shake als nächstes Polishing umsetzen
+
+## Zuletzt erledigt
+- Perspektive in `index-perspective-exp.html` auf deutlich glaubwürdigere Pseudo-3D-Projektion umgestellt
+- Hindernis-Austritt am Bildschirmrand über harte Tunnel-Vorderkante entschärft
+- Unfaire, vollständig blockierende Hinderniskombinationen im Experimental-Build abgesichert
+- Sound-System testweise eingebaut; Thema vorerst geparkt und nicht mehr als aktiver Fokus behandeln
+- Separates Godot-Projekt unter `godot/TunnelRunnerGodot/` als neuer Port-Startpunkt angelegt, ohne den HTML-Build zu ersetzen
 
 ## Aktuelle Iteration
 - Erste kleine Gameplay-Pass-Änderung auf Flow/Pacing
@@ -75,8 +74,8 @@
 
 ## Roadmap
 1. ✅ Core-Gameplay
-2. 🔴 Perspektive lösen
-3. 🔲 Sound
+2. ✅ Perspektive lösen
+3. ⏸️ Sound vorerst geparkt
 4. 🔲 Highscore (localStorage)
 5. 🔲 Screen Shake
 6. 🔲 Web-Version deployen (GitHub Pages / Netlify)
