@@ -160,7 +160,7 @@ try{
   if(saved!==null)soundEnabled=saved==='1';
 }catch{}
 
-let audioCtx=null,audioMaster=null,audioReady=false;
+let audioCtx=null,audioMaster=null,audioReady=false,audioNoiseBuffer=null;
 let tunnelDroneOsc=null,tunnelDroneGain=null;
 
 function saveSoundPref(){try{localStorage.setItem(SOUND_PREF_KEY,soundEnabled?'1':'0')}catch{}}
@@ -240,10 +240,31 @@ function pulseTone(type,freqStart,freqEnd,duration,volume,when=0,filterType='low
   osc.stop(now+duration+.03);
 }
 
+function noiseBurst(duration,volume,filterFreq,filterType='bandpass'){
+  if(!soundEnabled||!ensureAudio())return;
+  const now=audioCtx.currentTime;
+  const src=audioCtx.createBufferSource();
+  src.buffer=audioNoiseBuffer;
+  const filter=audioCtx.createBiquadFilter();
+  filter.type=filterType;
+  filter.frequency.value=filterFreq;
+  filter.Q.value=1.1;
+  const gain=audioCtx.createGain();
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.006);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioMaster);
+  src.start(now);
+  src.stop(now+duration+.03);
+}
+
 function playJumpSound(){
   if(!resumeAudio())return;
   pulseTone('sawtooth',210,140,.08,.028,0,'bandpass',1.2);
   pulseTone('triangle',160,92,.14,.032,.018,'lowpass',.6);
+  noiseBurst(.045,.012,900,'highpass');
 }
 
 function playCoinSound(){
@@ -255,6 +276,7 @@ function playCoinSound(){
 
 function playCrashSound(){
   if(!resumeAudio())return;
+  noiseBurst(.24,.075,210,'bandpass');
   pulseTone('sawtooth',170,46,.28,.055,0,'lowpass',.8);
   pulseTone('triangle',96,38,.22,.03,.03,'lowpass',.7);
 }
@@ -1037,14 +1059,22 @@ function loop(ts){
 // This creates the 3D effect where the ring partially covers the wheel during a jump
 function drawForegroundRim(){
   const tunnelHue=getTunnelHue();
-  const lipOuter=OR+16;
-  const lipInner=OR-12;
+  const outerMask=OR+6;
+  const lipOuter=OR+22;
+  const lipInner=OR-14;
+
+  cx.save();
+  cx.beginPath();
+  cx.rect(0,0,W,H);
+  cx.arc(CX,CY,outerMask,0,Math.PI*2,true);
+  cx.fillStyle='rgba(2,6,12,.98)';
+  cx.fill('evenodd');
 
   const lip=cx.createRadialGradient(CX,CY,lipInner,CX,CY,lipOuter);
   lip.addColorStop(0,`hsla(${tunnelHue},45%,18%,0)`);
-  lip.addColorStop(.55,`hsla(${tunnelHue},48%,18%,.18)`);
-  lip.addColorStop(.82,'rgba(8,18,34,.42)');
-  lip.addColorStop(1,'rgba(0,0,0,.75)');
+  lip.addColorStop(.45,`hsla(${tunnelHue},52%,20%,.92)`);
+  lip.addColorStop(.75,'rgba(8,18,34,.98)');
+  lip.addColorStop(1,'rgba(0,0,0,1)');
   cx.beginPath();
   cx.arc(CX,CY,lipOuter,0,Math.PI*2);
   cx.arc(CX,CY,lipInner,0,Math.PI*2,true);
@@ -1056,6 +1086,7 @@ function drawForegroundRim(){
   cx.strokeStyle='rgba(120,200,255,.18)';
   cx.lineWidth=4;
   cx.stroke();
+  cx.restore();
 }
 
 function drawSceneSplit(){
