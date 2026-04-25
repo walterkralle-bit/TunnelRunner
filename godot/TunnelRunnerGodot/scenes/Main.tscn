@@ -91,15 +91,6 @@ color = Color(0.09, 0.06, 0.16, 1)
 
 [node name="WheelWrap" type="Control" parent="UI/ControlsRoot"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -156.0
-offset_top = -156.0
-offset_right = 156.0
-offset_bottom = 156.0
 grow_horizontal = 2
 grow_vertical = 2
 

@@ -39,11 +39,15 @@ var bands: Array[Dictionary] = []
 @onready var score_label: Label = $UI/ScoreLabel
 @onready var record_label: Label = $UI/RecordLabel
 @onready var coin_label: Label = $UI/CoinLabel
+@onready var controls_root: Control = $UI/ControlsRoot
 @onready var overlay: Control = $UI/Overlay
 @onready var state_label: Label = $UI/Overlay/CenterBox/StateLabel
 @onready var start_button: Button = $UI/Overlay/CenterBox/StartButton
 @onready var wheel_wrap: Control = $UI/ControlsRoot/WheelWrap
+@onready var wheel_outer: Control = $UI/ControlsRoot/WheelWrap/WheelOuter
 @onready var wheel_area: Control = $UI/ControlsRoot/WheelWrap/WheelArea
+@onready var wheel_cross_h: ColorRect = $UI/ControlsRoot/WheelWrap/WheelArea/WheelCrossH
+@onready var wheel_cross_v: ColorRect = $UI/ControlsRoot/WheelWrap/WheelArea/WheelCrossV
 @onready var wheel_indicator: ColorRect = $UI/ControlsRoot/WheelWrap/WheelArea/WheelIndicator
 @onready var jump_button: Button = $UI/ControlsRoot/WheelWrap/WheelArea/JumpButton
 
@@ -56,6 +60,7 @@ func _ready() -> void:
 	jump_button.pressed.connect(_on_jump_pressed)
 	wheel_area.gui_input.connect(_on_wheel_gui_input)
 	_reset_run_state()
+	_layout_controls()
 	_update_hud()
 	_update_wheel_indicator()
 	queue_redraw()
@@ -128,6 +133,10 @@ func _process(delta: float) -> void:
 	_update_wheel_indicator()
 	queue_redraw()
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_layout_controls()
+
 func _update_input(delta: float) -> void:
 	var turn_input: float = Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")
 	if not wheel_dragging and turn_input != 0.0:
@@ -159,9 +168,31 @@ func _on_wheel_gui_input(event: InputEvent) -> void:
 func _set_target_from_wheel(local_pos: Vector2) -> void:
 	var center: Vector2 = wheel_area.size * 0.5
 	var delta: Vector2 = local_pos - center
-	if delta.length() < 24.0:
+	if delta.length() < wheel_area.size.x * 0.09:
 		return
 	target_angle = wrapf(delta.angle(), 0.0, TAU_F)
+
+func _layout_controls() -> void:
+	var size: Vector2 = get_viewport_rect().size
+	var controls_h: float = size.x * 0.8
+	controls_root.position = Vector2(0.0, size.y - controls_h)
+	controls_root.size = Vector2(size.x, controls_h)
+	var wheel_size: float = size.x * 0.7
+	var outer_pad: float = wheel_size * 0.057
+	wheel_wrap.position = Vector2((size.x - wheel_size) * 0.5, (controls_h - wheel_size) * 0.5)
+	wheel_wrap.size = Vector2(wheel_size, wheel_size)
+	wheel_outer.position = Vector2(-outer_pad, -outer_pad)
+	wheel_outer.size = Vector2(wheel_size + outer_pad * 2.0, wheel_size + outer_pad * 2.0)
+	wheel_area.position = Vector2.ZERO
+	wheel_area.size = Vector2(wheel_size, wheel_size)
+	wheel_cross_h.position = Vector2(wheel_size * 0.12, wheel_size * 0.5 - 1.0)
+	wheel_cross_h.size = Vector2(wheel_size * 0.76, 2.0)
+	wheel_cross_v.position = Vector2(wheel_size * 0.5 - 1.0, wheel_size * 0.12)
+	wheel_cross_v.size = Vector2(2.0, wheel_size * 0.76)
+	jump_button.position = Vector2(wheel_size * 0.5 - wheel_size * 0.136, wheel_size * 0.5 - wheel_size * 0.136)
+	jump_button.size = Vector2(wheel_size * 0.272, wheel_size * 0.272)
+	jump_button.add_theme_font_size_override("font_size", int(size.x * 0.045))
+	wheel_indicator.size = Vector2(max(6.0, size.x * 0.015), size.x * 0.08)
 
 func _update_wheel_indicator() -> void:
 	var center: Vector2 = wheel_wrap.position + wheel_area.position + wheel_area.size * 0.5
