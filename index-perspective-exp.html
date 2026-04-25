@@ -160,7 +160,7 @@ try{
 }catch{}
 
 let audioCtx=null,audioMaster=null,audioReady=false,audioNoiseBuffer=null;
-let tunnelNoiseSource=null,tunnelNoiseFilter=null,tunnelNoiseGain=null,tunnelDroneOsc=null,tunnelDroneGain=null;
+let tunnelDroneOsc=null,tunnelDroneGain=null;
 
 function saveSoundPref(){try{localStorage.setItem(SOUND_PREF_KEY,soundEnabled?'1':'0')}catch{}}
 function getSoundLabel(){return soundEnabled?'TON: AN':'TON: AUS'}
@@ -196,23 +196,6 @@ function ensureAudio(){
   audioMaster.gain.value=soundEnabled?.6:.0001;
   audioMaster.connect(audioCtx.destination);
 
-  const len=Math.max(1,Math.floor(audioCtx.sampleRate*1.5));
-  audioNoiseBuffer=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
-  const data=audioNoiseBuffer.getChannelData(0);
-  for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.55;
-
-  tunnelNoiseSource=audioCtx.createBufferSource();
-  tunnelNoiseSource.buffer=audioNoiseBuffer;
-  tunnelNoiseSource.loop=true;
-  tunnelNoiseFilter=audioCtx.createBiquadFilter();
-  tunnelNoiseFilter.type='highpass';
-  tunnelNoiseFilter.frequency.value=520;
-  tunnelNoiseGain=audioCtx.createGain();
-  tunnelNoiseGain.gain.value=0;
-  tunnelNoiseSource.connect(tunnelNoiseFilter);
-  tunnelNoiseFilter.connect(tunnelNoiseGain);
-  tunnelNoiseGain.connect(audioMaster);
-  tunnelNoiseSource.start();
 
   tunnelDroneOsc=audioCtx.createOscillator();
   tunnelDroneOsc.type='sine';
@@ -301,14 +284,10 @@ function updateTunnelAudio(){
   if(!audioReady)return;
   const active=soundEnabled&&run&&!paused&&!over;
   const now=audioCtx.currentTime;
-  const targetNoise=active?Math.min(.018,.005+spd*.004):.0001;
-  const targetDrone=active?Math.min(.012,.003+spd*.0025):.0001;
-  tunnelNoiseGain.gain.cancelScheduledValues(now);
-  tunnelNoiseGain.gain.setTargetAtTime(targetNoise,now,.2);
+  const targetDrone=active?Math.min(.01,.0025+spd*.002):.0001;
   tunnelDroneGain.gain.cancelScheduledValues(now);
   tunnelDroneGain.gain.setTargetAtTime(targetDrone,now,.24);
-  tunnelNoiseFilter.frequency.setTargetAtTime(480+spd*85,now,.22);
-  tunnelDroneOsc.frequency.setTargetAtTime(74+spd*8,now,.25);
+  tunnelDroneOsc.frequency.setTargetAtTime(72+spd*7,now,.25);
 }
 
 // ==================== TUNNEL ====================
