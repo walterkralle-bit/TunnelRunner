@@ -59,6 +59,7 @@ func _ready() -> void:
 	start_button.pressed.connect(_on_start_pressed)
 	jump_button.pressed.connect(_on_jump_pressed)
 	wheel_area.gui_input.connect(_on_wheel_gui_input)
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_reset_run_state()
 	_layout_controls()
 	_update_hud()
@@ -133,9 +134,8 @@ func _process(delta: float) -> void:
 	_update_wheel_indicator()
 	queue_redraw()
 
-func _notification(what: int) -> void:
-	if what == Node.NOTIFICATION_RESIZED:
-		_layout_controls()
+func _on_viewport_size_changed() -> void:
+	_layout_controls()
 
 func _update_input(delta: float) -> void:
 	var turn_input: float = Input.get_action_strength("turn_right") - Input.get_action_strength("turn_left")
