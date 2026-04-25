@@ -452,7 +452,7 @@ function updatePlayer(dt){
   let d=sAng-pAng;d=Math.atan2(Math.sin(d),Math.cos(d));
   pAng+=Math.sign(d)*Math.min(Math.abs(d)*CFG.steerSmooth,CFG.steerMax)*dt;
   pAng=((pAng%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
-  playerSectorVisual=getSector(pAng+SECTOR_SIZE*.5);
+  playerSectorVisual=getSector(pAng);
   if(jumping){jf+=dt;if(jf>=CFG.jumpDur){jumping=false;jf=0}}
   if(inv>0)inv-=dt;
   wspin+=.08*spd*dt;
@@ -716,7 +716,7 @@ function updateObs(dt){
   if(inv>0)return;
   
   const isJump=jOff()>.06;
-  const pSec=playerSectorVisual;
+  const pSec=getSector(collisionAngle);
   const collisionAngle=pAng;
   
   for(let o of obs){
@@ -928,7 +928,7 @@ function showHint(txt){hintEl.textContent=txt;hintEl.classList.add('show');hintT
 function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.classList.remove('show')}}
 
 // ==================== GAME FLOW ====================
-function die(){playCrashSound();shakeTimer=12;shakeStrength=7;lives--;if(lives<=0)endGame();else inv=90}
+function die(){playCrashSound();shakeTimer=18;shakeStrength=18;lives--;if(lives<=0)endGame();else inv=90}
 const ov=document.getElementById('ov');
 const startBtn=document.getElementById('go');
 function bindStartButton(){
@@ -943,7 +943,7 @@ bindStartButton();
 function startGame(){
   resumeAudio();
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
-  pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
+  pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2);jumping=false;jf=0;wspin=0;
   obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;shakeTimer=0;shakeStrength=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
@@ -1043,10 +1043,11 @@ function loop(ts){
   }
   if(shakeTimer>0){
     shakeTimer=Math.max(0,shakeTimer-dt);
-    shakeStrength*=.9;
+    shakeStrength*=.92;
   }
-  const shakeX=shakeTimer>0?(Math.random()*2-1)*shakeStrength:0;
-  const shakeY=shakeTimer>0?(Math.random()*2-1)*shakeStrength:0;
+  const shakePhase=fc*2.8;
+  const shakeX=shakeTimer>0?(Math.sin(shakePhase*2.7)+((Math.random()*2-1)*.35))*shakeStrength:0;
+  const shakeY=shakeTimer>0?(Math.cos(shakePhase*4.1)*.55+((Math.random()*2-1)*.25))*shakeStrength*.55:0;
   cx.save();
   cx.translate(shakeX,shakeY);
   drawTunnel();drawSceneSplit();drawSparks();drawParts();drawForegroundRim();drawFloats();
