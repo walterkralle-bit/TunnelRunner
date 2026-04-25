@@ -42,9 +42,10 @@ var bands: Array[Dictionary] = []
 @onready var overlay: Control = $UI/Overlay
 @onready var state_label: Label = $UI/Overlay/CenterBox/StateLabel
 @onready var start_button: Button = $UI/Overlay/CenterBox/StartButton
-@onready var wheel_area: Control = $UI/ControlsRoot/WheelArea
-@onready var wheel_indicator: ColorRect = $UI/ControlsRoot/WheelArea/WheelIndicator
-@onready var jump_button: Button = $UI/ControlsRoot/JumpButton
+@onready var wheel_wrap: Control = $UI/ControlsRoot/WheelWrap
+@onready var wheel_area: Control = $UI/ControlsRoot/WheelWrap/WheelArea
+@onready var wheel_indicator: ColorRect = $UI/ControlsRoot/WheelWrap/WheelArea/WheelIndicator
+@onready var jump_button: Button = $UI/ControlsRoot/WheelWrap/WheelArea/JumpButton
 
 func _ready() -> void:
 	randomize()
@@ -163,10 +164,10 @@ func _set_target_from_wheel(local_pos: Vector2) -> void:
 	target_angle = wrapf(delta.angle(), 0.0, TAU_F)
 
 func _update_wheel_indicator() -> void:
-	var center: Vector2 = wheel_area.position + wheel_area.size * 0.5
+	var center: Vector2 = wheel_wrap.position + wheel_area.position + wheel_area.size * 0.5
 	var r: float = wheel_area.size.x * 0.46
 	var pos: Vector2 = center + Vector2(cos(player_angle), sin(player_angle)) * (r - 24.0)
-	wheel_indicator.position = pos - wheel_indicator.size * Vector2(0.5, 0.25)
+	wheel_indicator.position = pos - wheel_wrap.position - wheel_area.position - wheel_indicator.size * Vector2(0.5, 0.25)
 	wheel_indicator.rotation = player_angle + PI * 0.5
 
 func _perform_jump() -> void:

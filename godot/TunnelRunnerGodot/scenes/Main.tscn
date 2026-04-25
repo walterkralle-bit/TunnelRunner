@@ -80,40 +80,70 @@ offset_top = -320.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="WheelArea" type="Panel" parent="UI/ControlsRoot"]
-offset_left = 110.0
-offset_top = 10.0
-offset_right = 390.0
-offset_bottom = 290.0
+[node name="ControlsBG" type="ColorRect" parent="UI/ControlsRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09, 0.06, 0.16, 1)
+
+[node name="WheelWrap" type="Control" parent="UI/ControlsRoot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -156.0
+offset_top = -156.0
+offset_right = 156.0
+offset_bottom = 156.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="WheelOuter" type="Panel" parent="UI/ControlsRoot/WheelWrap"]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 328.0
+offset_bottom = 328.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_wheel")
 
-[node name="WheelCrossH" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
-offset_left = 36.0
+[node name="WheelArea" type="Panel" parent="UI/ControlsRoot/WheelWrap"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 296.0
+offset_bottom = 296.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_wheel")
+
+[node name="WheelCrossH" type="ColorRect" parent="UI/ControlsRoot/WheelWrap/WheelArea"]
+offset_left = 34.0
 offset_top = 139.0
-offset_right = 244.0
+offset_right = 246.0
 offset_bottom = 141.0
 color = Color(0.78, 0.39, 1, 0.18)
 
-[node name="WheelCrossV" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
+[node name="WheelCrossV" type="ColorRect" parent="UI/ControlsRoot/WheelWrap/WheelArea"]
 offset_left = 139.0
-offset_top = 36.0
+offset_top = 34.0
 offset_right = 141.0
-offset_bottom = 244.0
+offset_bottom = 246.0
 color = Color(0.78, 0.39, 1, 0.18)
 
-[node name="WheelIndicator" type="ColorRect" parent="UI/ControlsRoot/WheelArea"]
+[node name="WheelIndicator" type="ColorRect" parent="UI/ControlsRoot/WheelWrap/WheelArea"]
 offset_left = 137.0
-offset_top = 20.0
+offset_top = 10.0
 offset_right = 143.0
-offset_bottom = 52.0
+offset_bottom = 42.0
 color = Color(1, 1, 1, 1)
 
-[node name="JumpButton" type="Button" parent="UI/ControlsRoot"]
-offset_left = 850.0
-offset_top = 100.0
-offset_right = 1010.0
-offset_bottom = 260.0
-theme_override_font_sizes/font_size = 22
+[node name="JumpButton" type="Button" parent="UI/ControlsRoot/WheelWrap/WheelArea"]
+offset_left = 102.0
+offset_top = 102.0
+offset_right = 178.0
+offset_bottom = 178.0
+theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_jump")
 theme_override_styles/hover = SubResource("StyleBoxFlat_jump")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_jump")
