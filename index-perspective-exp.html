@@ -151,6 +151,115 @@ function z2r(z){
   return OR*zScale(z);
 }
 
+// ==================== AUDIO ====================
+let audioCtx=null,audioMaster=null,audioReady=false,audioNoiseBuffer=null;
+let tunnelNoiseSource=null,tunnelNoiseFilter=null,tunnelNoiseGain=null,tunnelDroneOsc=null,tunnelDroneGain=null;
+
+function ensureAudio(){
+  if(audioReady)return true;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC)return false;
+  audioCtx=new AC();
+  audioMaster=audioCtx.createGain();
+  audioMaster.gain.value=.6;
+  audioMaster.connect(audioCtx.destination);
+
+  const len=Math.max(1,Math.floor(audioCtx.sampleRate*1.5));
+  audioNoiseBuffer=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const data=audioNoiseBuffer.getChannelData(0);
+  for(let i=0;i<len;i++)data[i]=(Math.random()*2-1)*.7;
+
+  tunnelNoiseSource=audioCtx.createBufferSource();
+  tunnelNoiseSource.buffer=audioNoiseBuffer;
+  tunnelNoiseSource.loop=true;
+  tunnelNoiseFilter=audioCtx.createBiquadFilter();
+  tunnelNoiseFilter.type='bandpass';
+  tunnelNoiseFilter.frequency.value=240;
+  tunnelNoiseFilter.Q.value=.8;
+  tunnelNoiseGain=audioCtx.createGain();
+  tunnelNoiseGain.gain.value=0;
+  tunnelNoiseSource.connect(tunnelNoiseFilter);
+  tunnelNoiseFilter.connect(tunnelNoiseGain);
+  tunnelNoiseGain.connect(audioMaster);
+  tunnelNoiseSource.start();
+
+  tunnelDroneOsc=audioCtx.createOscillator();
+  tunnelDroneOsc.type='triangle';
+  tunnelDroneOsc.frequency.value=58;
+  tunnelDroneGain=audioCtx.createGain();
+  tunnelDroneGain.gain.value=0;
+  tunnelDroneOsc.connect(tunnelDroneGain);
+  tunnelDroneGain.connect(audioMaster);
+  tunnelDroneOsc.start();
+
+  audioReady=true;
+  return true;
+}
+
+function resumeAudio(){
+  if(!ensureAudio())return;
+  if(audioCtx.state==='suspended')audioCtx.resume();
+}
+
+function pulseTone(type,freqStart,freqEnd,duration,volume,when=0){
+  if(!ensureAudio())return;
+  const now=audioCtx.currentTime+when;
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  const filter=audioCtx.createBiquadFilter();
+  osc.type=type;
+  osc.frequency.setValueAtTime(freqStart,now);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(20,freqEnd),now+duration);
+  filter.type='lowpass';
+  filter.frequency.setValueAtTime(Math.max(freqStart,freqEnd)*2.4,now);
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.01);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioMaster);
+  osc.start(now);
+  osc.stop(now+duration+.02);
+}
+
+function noiseBurst(duration,volume,filterFreq){
+  if(!ensureAudio())return;
+  const now=audioCtx.currentTime;
+  const src=audioCtx.createBufferSource();
+  src.buffer=audioNoiseBuffer;
+  const filter=audioCtx.createBiquadFilter();
+  filter.type='bandpass';
+  filter.frequency.value=filterFreq;
+  filter.Q.value=.9;
+  const gain=audioCtx.createGain();
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(volume,now+.01);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioMaster);
+  src.start(now);
+  src.stop(now+duration+.03);
+}
+
+function playJumpSound(){resumeAudio();pulseTone('square',460,170,.16,.045);pulseTone('triangle',220,110,.18,.03,.02)}
+function playCoinSound(){resumeAudio();pulseTone('triangle',880,1320,.08,.05);pulseTone('sine',1320,1760,.07,.035,.03)}
+function playCrashSound(){resumeAudio();noiseBurst(.28,.08,180);pulseTone('sawtooth',190,48,.32,.06);pulseTone('square',120,42,.24,.04,.04)}
+
+function updateTunnelAudio(){
+  if(!audioReady)return;
+  const active=run&&!paused&&!over;
+  const now=audioCtx.currentTime;
+  const targetNoise=active?Math.min(.055,.018+spd*.012):.0001;
+  const targetDrone=active?Math.min(.026,.008+spd*.006):.0001;
+  tunnelNoiseGain.gain.cancelScheduledValues(now);
+  tunnelNoiseGain.gain.setTargetAtTime(targetNoise,now,.12);
+  tunnelDroneGain.gain.cancelScheduledValues(now);
+  tunnelDroneGain.gain.setTargetAtTime(targetDrone,now,.18);
+  tunnelNoiseFilter.frequency.setTargetAtTime(210+spd*55,now,.18);
+  tunnelDroneOsc.frequency.setTargetAtTime(52+spd*10,now,.2);
+}
+
 // ==================== TUNNEL ====================
 const NBANDS=12,BSPC=.11;
 const NLONG=24; // longitudinal panel lines
@@ -356,7 +465,7 @@ function drawSparks(){
   cx.globalAlpha=1;
 }
 
-function doJump(){if(!jumping&&run){jumping=true;jf=0}}
+function doJump(){if(!jumping&&run){resumeAudio();playJumpSound();jumping=true;jf=0}}
 
 // ==================== OBSTACLES ====================
 let lastCoinSpawnZ=0;
@@ -745,6 +854,7 @@ function updateCoins(dt){
 
   if(bestCoin){
     bestCoin.collected=true;
+    playCoinSound();
     sc+=100;coinCount++;spawnParts(bestCoin.angle,bestCoin.z);
     const cr=z2r(bestCoin.z);
     addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+1 COIN','#ffdd00');
@@ -787,7 +897,7 @@ function showHint(txt){hintEl.textContent=txt;hintEl.classList.add('show');hintT
 function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.classList.remove('show')}}
 
 // ==================== GAME FLOW ====================
-function die(){lives--;if(lives<=0)endGame();else inv=90}
+function die(){playCrashSound();lives--;if(lives<=0)endGame();else inv=90}
 const ov=document.getElementById('ov');
 const startBtn=document.getElementById('go');
 function bindStartButton(){
@@ -800,6 +910,7 @@ function bindStartButton(){
 bindStartButton();
 
 function startGame(){
+  resumeAudio();
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
   pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
   obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;
@@ -822,6 +933,7 @@ function showPauseMenu(){
 
 function resumeGame(){
   if(!run)return;
+  resumeAudio();
   paused=false;
   ov.classList.add('hidden');
 }
@@ -878,6 +990,7 @@ let firstBlockShown=false,firstRingShown=false;
 
 function loop(ts){
   const dt=Math.min((ts-lastT)/16.67,3);lastT=ts;
+  updateTunnelAudio();
   if(run&&!paused){
     fc+=dt;dist+=spd*dt;sc+=Math.floor(spd*dt*2);
     spd=1+dist*CFG.rampSpeed;
