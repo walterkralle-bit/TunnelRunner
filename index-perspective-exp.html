@@ -1002,7 +1002,6 @@ const whl=document.getElementById('whl'),jmpBtn=document.getElementById('jmp');
 function wC(){const r=whl.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
 function ensureStarted(){if(!run&&!over)startGame()}
 function steer(cx,cy){ensureStarted();const c=wC(),dx=cx-c.x,dy=cy-c.y;if(Math.sqrt(dx*dx+dy*dy)<25)return;sAng=Math.atan2(dy,dx);whl.style.transform=`rotate(${(sAng*180/Math.PI)-90}deg)`}
-function handleFirstInteraction(){ensureStarted()}
 whl.addEventListener('mousedown',e=>{const c=wC();if(Math.sqrt((e.clientX-c.x)**2+(e.clientY-c.y)**2)<25)return;drag=true;steer(e.clientX,e.clientY)});
 document.addEventListener('mousemove',e=>{if(drag)steer(e.clientX,e.clientY)});
 document.addEventListener('mouseup',()=>{drag=false});
@@ -1012,12 +1011,9 @@ whl.addEventListener('touchend',()=>{drag=false});
 jmpBtn.addEventListener('mousedown',e=>{e.stopPropagation();ensureStarted();doJump()});
 jmpBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();ensureStarted();doJump()});
 pauseBtn.addEventListener('click',e=>{e.preventDefault();togglePause()});
-document.addEventListener('pointerdown',handleFirstInteraction,{passive:true});
-document.addEventListener('touchstart',handleFirstInteraction,{passive:true});
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();togglePause();return}
-  ensureStarted();
-  if(e.code==='Space'){e.preventDefault();if(!paused)doJump()}
+  if(e.code==='Space'){e.preventDefault();ensureStarted();if(!paused)doJump()}
 });
 
 // ==================== GAME LOOP ====================
@@ -1292,7 +1288,6 @@ function drawSingleCoin(c){
   cx.beginPath();cx.arc(x-sz*.18,y-sz*.18,sz*.2,0,Math.PI*2);cx.fillStyle='rgba(255,255,220,.5)';cx.fill();
 }
 initBands();
-setTimeout(()=>{if(!run&&!over)startGame()},120);
 requestAnimationFrame(loop);
 </script>
 </body>
