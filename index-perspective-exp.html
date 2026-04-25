@@ -1000,20 +1000,19 @@ function updHUD(){
 // ==================== CONTROLS ====================
 const whl=document.getElementById('whl'),jmpBtn=document.getElementById('jmp');
 function wC(){const r=whl.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}
-function ensureStarted(){if(!run&&!over)startGame()}
-function steer(cx,cy){ensureStarted();const c=wC(),dx=cx-c.x,dy=cy-c.y;if(Math.sqrt(dx*dx+dy*dy)<25)return;sAng=Math.atan2(dy,dx);whl.style.transform=`rotate(${(sAng*180/Math.PI)-90}deg)`}
+function steer(cx,cy){const c=wC(),dx=cx-c.x,dy=cy-c.y;if(Math.sqrt(dx*dx+dy*dy)<25)return;sAng=Math.atan2(dy,dx);whl.style.transform=`rotate(${(sAng*180/Math.PI)-90}deg)`}
 whl.addEventListener('mousedown',e=>{const c=wC();if(Math.sqrt((e.clientX-c.x)**2+(e.clientY-c.y)**2)<25)return;drag=true;steer(e.clientX,e.clientY)});
 document.addEventListener('mousemove',e=>{if(drag)steer(e.clientX,e.clientY)});
 document.addEventListener('mouseup',()=>{drag=false});
 whl.addEventListener('touchstart',e=>{const t=e.touches[0],c=wC();if(Math.sqrt((t.clientX-c.x)**2+(t.clientY-c.y)**2)<25)return;drag=true;steer(t.clientX,t.clientY);e.preventDefault()},{passive:false});
 whl.addEventListener('touchmove',e=>{if(drag)steer(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault()},{passive:false});
 whl.addEventListener('touchend',()=>{drag=false});
-jmpBtn.addEventListener('mousedown',e=>{e.stopPropagation();ensureStarted();doJump()});
-jmpBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();ensureStarted();doJump()});
+jmpBtn.addEventListener('mousedown',e=>{e.stopPropagation();doJump()});
+jmpBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();doJump()});
 pauseBtn.addEventListener('click',e=>{e.preventDefault();togglePause()});
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();togglePause();return}
-  if(e.code==='Space'){e.preventDefault();ensureStarted();if(!paused)doJump()}
+  if(e.code==='Space'){e.preventDefault();if(!paused)doJump()}
 });
 
 // ==================== GAME LOOP ====================
