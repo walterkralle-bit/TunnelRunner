@@ -2,18 +2,17 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Tunnel Runner</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;min-height:100%;}
-  body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;height:100dvh;min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom);font-family:'Orbitron',monospace}
-  #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:calc(100dvh - env(safe-area-inset-bottom));padding-top:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
-  #gameShell{position:relative;}
-  canvas{width:400px;height:440px;display:block;flex:0 0 auto}
-  #ctrl{width:400px;height:300px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative;flex:0 0 auto}
-  #whl{width:260px;height:260px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
+  body{background:#030810;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;display:flex;justify-content:center;align-items:flex-start;height:100vh;font-family:'Orbitron',monospace}
+  #wrap{position:relative;width:400px;display:flex;flex-direction:column;max-height:100vh}
+  #gameTopBar{width:400px;height:44px;display:flex;align-items:center;justify-content:flex-end;padding:6px 10px;background:linear-gradient(180deg,#09111f,#0a1018);border-bottom:1px solid rgba(255,255,255,.06)}
+  canvas{width:400px;height:440px;display:block}
+  #ctrl{width:400px;height:320px;background:radial-gradient(ellipse at center,#1a1a2e,#0d0d1a);display:flex;justify-content:center;align-items:center;position:relative}
+  #whl{width:280px;height:280px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c040e0,#9020b0 25%,#6a1080 50%,#3d0a4f 75%,#1a0525);border:5px solid #555;box-shadow:0 0 20px rgba(180,50,220,.4),inset 0 0 30px rgba(0,0,0,.5);position:relative;cursor:grab}
   #whlOut{position:absolute;top:-16px;left:-16px;right:-16px;bottom:-16px;border-radius:50%;background:linear-gradient(135deg,#666,#333 40%,#555 60%,#444);z-index:-1;box-shadow:inset 0 2px 6px rgba(255,255,255,.15),0 6px 20px rgba(0,0,0,.7)}
   #whl::before{content:'';position:absolute;top:12px;left:12px;right:12px;bottom:12px;border-radius:50%;border:2px solid rgba(200,100,255,.25);pointer-events:none}
   .ch{position:absolute;pointer-events:none;background:rgba(200,100,255,.2)}
@@ -24,14 +23,14 @@
   .tk.b{bottom:6px;left:50%;width:2px;height:14px;transform:translateX(-50%)}
   .tk.l{left:6px;top:50%;width:14px;height:2px;transform:translateY(-50%)}
   .tk.r{right:6px;top:50%;width:14px;height:2px;transform:translateY(-50%)}
-  #jmp{position:absolute;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f0c0ff,#d080f0 40%,#a040c0);border:3px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(200,100,255,.6);top:50%;left:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
+  #jmp{position:absolute;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f0c0ff,#d080f0 40%,#a040c0);border:3px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(200,100,255,.6);top:50%;left:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:10}
   #jmp:active{transform:translate(-50%,-50%) scale(.88)}
   #posInd{position:absolute;width:6px;height:32px;background:#fff;border-radius:3px;pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.9),0 0 16px rgba(200,100,255,.6);z-index:5;transform-origin:center 130px}
-  #hud{position:absolute;top:4px;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
+  #hud{position:absolute;top:0;left:0;right:0;padding:10px 14px;pointer-events:none;z-index:5}
   .hs{color:#ffd700;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
   .hr{color:#c0c0d0;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;margin-top:2px}
-  .hh{position:absolute;top:46px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
-  #pauseBtn{position:absolute;top:8px;right:10px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:8;box-shadow:0 0 10px rgba(0,0,0,.25)}
+  .hh{position:absolute;top:10px;right:14px;font-size:18px;color:#ffd700;font-family:'Rajdhani',sans-serif;font-weight:700;text-shadow:0 0 6px rgba(255,200,0,.5)}
+  #pauseBtn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(8,18,40,.78);color:#d8ecff;font-size:18px;font-weight:700;cursor:pointer;z-index:6;box-shadow:0 0 10px rgba(0,0,0,.25)}
   #pauseBtn:hover{background:rgba(18,38,78,.95)}
   /* hint text */
   #hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#aac;text-shadow:0 0 8px rgba(100,180,255,.5);pointer-events:none;z-index:5;opacity:0;transition:opacity .3s}
@@ -44,20 +43,12 @@
   .fs{font-family:'Orbitron',monospace;color:#ffd700;font-size:24px;margin:14px 0;text-shadow:0 0 12px rgba(255,200,0,.5)}
   .btn{margin-top:18px;padding:12px 36px;font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#0088cc,#005588);border:2px solid rgba(0,180,255,.5);border-radius:30px;cursor:pointer;letter-spacing:3px;box-shadow:0 0 16px rgba(0,140,220,.3)}
   .btn:hover{box-shadow:0 0 26px rgba(0,180,255,.6);transform:scale(1.05)}
-  @media (max-width: 430px){
-    #wrap{width:100vw;max-width:400px;margin:0 auto;padding-top:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 14px)}
-    canvas,#ctrl{width:100%}
-    canvas{height:auto;aspect-ratio:10 / 11}
-    #ctrl{height:280px}
-    #whl{width:240px;height:240px}
-    #jmp{width:68px;height:68px}
-  }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div id="gameShell">
-    <button id="pauseBtn" aria-label="Pause">❚❚</button>
+  <div id="gameTopBar"><button id="pauseBtn" aria-label="Pause">❚❚</button></div>
+  <div style="position:relative">
     <canvas id="c" width="800" height="880"></canvas>
     <div id="hud"><div class="hs" id="sc">0</div><div class="hr" id="rc">Record: 0</div><div class="hh" id="hrt">🪙 0</div></div>
     <div id="hint"></div>
@@ -85,7 +76,7 @@
 <script>
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const pauseBtn=document.getElementById('pauseBtn');
-const W=cv.width,H=cv.height,CX=W/2,CY=H*.47;
+const W=cv.width,H=cv.height,CX=W/2,CY=H*.45;
 const OR=360,IR=45;
 
 // ==================== GAME CONFIG ====================
@@ -106,43 +97,24 @@ const CFG={
 let run=false,over=false,paused=false,sc=0,hi=0,lives=1,spd=1,dist=0,inv=0,fc=0,coinCount=0;
 let pAng=Math.PI/2,jumping=false,jf=0,wspin=0;
 let sAng=Math.PI/2,drag=false;
-let playerSectorVisual=0;
 let obs=[],cns=[],parts=[];
 let spT=0,cnT=0;
 let spawnPhase=0;
 let coinModeTimer=0;
 let coinCollectCooldown=0;
-let laneBlockCooldown=0;
-let passageSpawnGuard=0;
 
 // The tunnel is divided into 8 equal SECTORS for collision
 // This makes collision grid-based and 100% predictable
 const SECTORS=8;
 const SECTOR_SIZE=Math.PI*2/SECTORS;
-const ALL_SECTORS=Array.from({length:SECTORS},(_,i)=>i);
 
 function getSector(angle){
   let a=((angle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
   return Math.floor(a/SECTOR_SIZE);
 }
 
-const PERSPECTIVE_DEPTH_NEAR=1;
-const PERSPECTIVE_DEPTH_FAR=OR/IR;
-const PERSPECTIVE_DEPTH_SPAN=PERSPECTIVE_DEPTH_FAR-PERSPECTIVE_DEPTH_NEAR;
-const PERSPECTIVE_FALLOFF=1.5;
-
-function projectDepth(z){
-  const clamped=Math.max(0,Math.min(1,z));
-  const depthT=Math.pow(1-clamped,PERSPECTIVE_FALLOFF);
-  return PERSPECTIVE_DEPTH_NEAR+PERSPECTIVE_DEPTH_SPAN*depthT;
-}
-
-function zScale(z){
-  return PERSPECTIVE_DEPTH_NEAR/projectDepth(z);
-}
-
 function z2r(z){
-  return OR*zScale(z);
+  return IR+(OR-IR)*Math.pow(Math.max(0,z),1.8);
 }
 
 // ==================== TUNNEL ====================
@@ -245,27 +217,7 @@ function jOff(){return jumping?Math.sin((jf/CFG.jumpDur)*Math.PI)*CFG.jumpHeight
 function pPos(){const jo=jOff(),r=z2r(CFG.playerZ-jo);return{x:CX+Math.cos(pAng)*r,y:CY+Math.sin(pAng)*r,r}}
 
 function drawPlayer(){
-  const p=pPos(),playerScale=zScale(CFG.playerZ-jOff()),sz=12+playerScale*24;
-  const shadowR=z2r(CFG.playerZ);
-  const shadowX=CX+Math.cos(pAng)*shadowR;
-  const shadowY=CY+Math.sin(pAng)*shadowR;
-  const lift=Math.max(0,jOff()/CFG.jumpHeight);
-  
-  // Permanent contact shadow / wall marker makes position and timing easier to read
-  cx.save();
-  cx.translate(shadowX,shadowY);
-  cx.rotate(pAng+Math.PI/2);
-  cx.scale(1,.55+.2*lift);
-  cx.beginPath();
-  cx.arc(0,0,sz*(.8-.12*lift),0,Math.PI*2);
-  cx.fillStyle=`rgba(0,0,0,${.3-.08*lift})`;
-  cx.fill();
-  cx.beginPath();
-  cx.arc(0,0,sz*(.98-.08*lift),0,Math.PI*2);
-  cx.strokeStyle=`rgba(120,220,255,${.34-.1*lift})`;
-  cx.lineWidth=Math.max(2.2,sz*.095);
-  cx.stroke();
-  cx.restore();
+  const p=pPos(),sz=18+CFG.playerZ*8;
   
   // Long trail going INTO the tunnel (fades toward center = depth)
   // This is key for the "driving forward" feeling
@@ -305,8 +257,6 @@ let sparks=[];
 function updatePlayer(dt){
   let d=sAng-pAng;d=Math.atan2(Math.sin(d),Math.cos(d));
   pAng+=Math.sign(d)*Math.min(Math.abs(d)*CFG.steerSmooth,CFG.steerMax)*dt;
-  pAng=((pAng%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
-  playerSectorVisual=getSector(pAng+SECTOR_SIZE*.5);
   if(jumping){jf+=dt;if(jf>=CFG.jumpDur){jumping=false;jf=0}}
   if(inv>0)inv-=dt;
   wspin+=.08*spd*dt;
@@ -355,88 +305,35 @@ function doJump(){if(!jumping&&run){jumping=true;jf=0}}
 // ==================== OBSTACLES ====================
 let lastCoinSpawnZ=0;
 
-function sectorListWithout(blocked){
-  const blockedSet=new Set(blocked);
-  return ALL_SECTORS.filter(s=>!blockedSet.has(s));
-}
-
-function getObstacleProfile(o){
-  if(o.type==='block')return{start:o.z,end:o.z+(o.depth||.08),safeSectors:sectorListWithout(o.sectors||[])};
-  if(o.type==='ring_segment')return{start:o.z,end:o.z+(o.depth||.08),safeSectors:[...(o.sectors||[])]};
-  if(o.type==='ring')return{start:o.z,end:o.z+(o.depth||.07),safeSectors:[...ALL_SECTORS]};
-  return null;
-}
-
-function canPlaceProfiles(profiles){
-  const existing=obs.map(getObstacleProfile).filter(Boolean);
-  const overlapBuffer=.05;
-  for(const candidate of profiles){
-    let shared=[...candidate.safeSectors];
-    for(const current of existing){
-      if(current.end+overlapBuffer<=candidate.start||current.start>=candidate.end+overlapBuffer)continue;
-      shared=shared.filter(s=>current.safeSectors.includes(s));
-      if(shared.length===0)return false;
-    }
-  }
-  return true;
-}
-
-function trySpawn(generator, attempts=20){
-  for(let i=0;i<attempts;i++){
-    const candidate=generator();
-    if(!candidate)continue;
-    if(canPlaceProfiles(candidate.profiles)){
-      candidate.commit();
-      return candidate.result;
-    }
-  }
-  return null;
-}
-
 function spawnGroup(){
   const diff=Math.min(1,dist/5000);
-  const phase=spawnPhase%7;
+  const phase=spawnPhase%6;
   spawnPhase++;
-
-  if(laneBlockCooldown>0)laneBlockCooldown--;
-
-  if(diff>.28&&laneBlockCooldown<=0&&(phase===2||phase===5)&&Math.random()<.65){
-    const blocked=spawnLaneBlockPassage(diff);
-    if(blocked){
-      laneBlockCooldown=5;
-      passageSpawnGuard=7;
-      if(Math.random()<.8)spawnCoinsInGap(blocked);
-      return;
-    }
-  }
 
   if(phase===0){
     const blocked=spawnBlockSet(diff*.85);
-    if(blocked&&Math.random()<.75)spawnCoinsInGap(blocked);
+    if(Math.random()<.75)spawnCoinsInGap(blocked);
     return;
   }
   if(phase===1){
-    if(Math.random()<.65&&passageSpawnGuard<=0){
+    if(Math.random()<.65){
       spawnRingObs();
     } else {
       const blocked=spawnBlockSet(diff*.9);
-      if(blocked&&Math.random()<.5)spawnCoinsInGap(blocked);
+      if(Math.random()<.5)spawnCoinsInGap(blocked);
     }
     return;
   }
   if(phase===2){
     const blocked=spawnBlockSet(diff);
-    if(blocked&&Math.random()<.35)spawnCoinsInGap(blocked);
+    if(Math.random()<.35)spawnCoinsInGap(blocked);
     return;
   }
   if(phase===3){
     if(diff>.22){
-      if(!spawnComboRing(diff)&&passageSpawnGuard<=0)spawnRingObs();
-    } else if(passageSpawnGuard<=0){
-      spawnRingObs();
+      spawnComboRing(diff);
     } else {
-      const blocked=spawnBlockSet(diff*.82);
-      if(blocked&&Math.random()<.45)spawnCoinsInGap(blocked);
+      spawnRingObs();
     }
     return;
   }
@@ -444,139 +341,83 @@ function spawnGroup(){
     if(Math.random()<.9)spawnCoins();
     return;
   }
-  if(phase===5){
-    const blocked=spawnBlockSet(diff*.95);
-    if(blocked&&Math.random()<.55)spawnCoinsInGap(blocked);
-    return;
-  }
 
-  if(Math.random()<.45)spawnCoins();
+  const blocked=spawnBlockSet(diff*.95);
+  if(Math.random()<.55)spawnCoinsInGap(blocked);
 }
 
 function spawnBlockSet(diff){
-  return trySpawn(()=>{
-    const minBlock=1,maxBlock=Math.floor(1+diff*5);
-    const numBlock=minBlock+Math.floor(Math.random()*(maxBlock-minBlock+1));
-    const pSec=getSector(pAng);
-    let available=[];
-    for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
-    for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-    const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
-    const depth=.09+Math.random()*.04;
-    return{
-      profiles:[{start:0,end:depth,safeSectors:sectorListWithout(blocked)}],
-      commit:()=>pushMergedBlocks(blocked,depth),
-      result:blocked
-    };
-  });
+  const minBlock=1,maxBlock=Math.floor(1+diff*5);
+  const numBlock=minBlock+Math.floor(Math.random()*(maxBlock-minBlock+1));
+  const pSec=getSector(pAng);
+  let available=[];
+  for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
+  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
+  const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
+  pushMergedBlocks(blocked,.09+Math.random()*.04);
+  return blocked;
 }
 
 function spawnRingObs(){
   obs.push({type:'ring',z:0,depth:.07,spd:CFG.obsSpeed,passed:false,sectors:null});
 }
 
-function spawnLaneBlockPassage(diff){
-  return trySpawn(()=>{
-    const width=diff>.7?(Math.random()<.55?4:3):3;
-    const span=3+Math.floor(diff*3);
-    const playerSector=getSector(pAng);
-    let start=(playerSector+2+Math.floor(Math.random()*3))%SECTORS;
-    const blocked=[];
-    for(let i=0;i<width;i++)blocked.push((start+i)%SECTORS);
-    const blockedSorted=blocked.sort((a,b)=>a-b);
-    const profiles=[];
-    const segments=[];
-    for(let i=0;i<span;i++){
-      const zOffset=-(i*.11);
-      const depth=.1+Math.random()*.025;
-      segments.push({depth,zOffset});
-      profiles.push({start:zOffset,end:zOffset+depth,safeSectors:sectorListWithout(blockedSorted)});
-    }
-    return{
-      profiles,
-      commit:()=>{
-        for(const segment of segments)pushMergedBlocks(blockedSorted,segment.depth,segment.zOffset);
-      },
-      result:blockedSorted
-    };
-  });
-}
-
-function pushMergedBlocks(sectors, depth=.08, zOffset=0){
-  const normalized=[...sectors].map(s=>((s%SECTORS)+SECTORS)%SECTORS).sort((a,b)=>a-b);
-  const uniq=[...new Set(normalized)];
-  const occupied=new Array(SECTORS).fill(false);
-  for(const s of uniq)occupied[s]=true;
+function pushMergedBlocks(sectors, depth=.08){
+  const sorted=[...sectors].sort((a,b)=>a-b);
   const groups=[];
-  let i=0;
-  while(i<SECTORS){
-    if(!occupied[i]){i++;continue}
-    const group=[];
-    let j=i;
-    while(j<SECTORS&&occupied[j]){group.push(j);j++}
-    groups.push(group);
-    i=j;
+  let current=[];
+  for(const s of sorted){
+    if(!current.length||s===current[current.length-1]+1){
+      current.push(s);
+    } else {
+      groups.push(current);
+      current=[s];
+    }
   }
-  if(occupied[0]&&occupied[SECTORS-1]&&groups.length>1){
-    const first=groups[0];
-    const last=groups[groups.length-1];
-    groups[0]=last.concat(first);
-    groups.pop();
-  }
+  if(current.length)groups.push(current);
 
   for(const group of groups){
-    const sortedGroup=[...group].sort((a,b)=>a-b);
-    const first=sortedGroup[0];
-    const len=sortedGroup.length;
-    const center=((first+len/2)%SECTORS)*SECTOR_SIZE;
-    const arc=len*SECTOR_SIZE;
-    obs.push({type:'block',angle:center,arcSize:arc,z:zOffset,depth,spd:CFG.obsSpeed,passed:false,sectors:[...sortedGroup]});
+    const start=group[0];
+    const end=group[group.length-1];
+    const center=((start+end+1)/2)*SECTOR_SIZE;
+    const arc=group.length*SECTOR_SIZE;
+    obs.push({type:'block',angle:center,arcSize:arc,z:0,depth,spd:CFG.obsSpeed,passed:false,sectors:[...group]});
   }
 }
 
 function spawnComboRing(diff){
   // Full ring: mostly brown (dodge), 1-2 sectors blue (jumpable)
-  return trySpawn(()=>{
-    const numBlue=diff>.6?1:1+Math.floor(Math.random()*2);
-    let all=[...ALL_SECTORS];for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
-    const blue=all.slice(0,numBlue).sort((a,b)=>a-b);
-    const brown=ALL_SECTORS.filter(i=>!blue.includes(i));
-    const depth=.08;
-    return{
-      profiles:[{start:0,end:depth,safeSectors:[...blue]}],
-      commit:()=>{
-        for(let i=0;i<SECTORS;i++){
-          const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
-          if(blue.includes(i)){
-            obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
-          }
-        }
-        pushMergedBlocks(brown,.08);
-      },
-      result:blue
-    };
-  });
+  const numBlue=diff>.6?1:1+Math.floor(Math.random()*2);
+  let all=[];for(let i=0;i<SECTORS;i++)all.push(i);
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
+  const blue=all.slice(0,numBlue);
+  const brown=[];
+  for(let i=0;i<SECTORS;i++){
+    const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
+    if(blue.includes(i)){
+      obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
+    } else {
+      brown.push(i);
+    }
+  }
+  pushMergedBlocks(brown,.08);
 }
 
 function updateObs(dt){
   const s=dt*spd;
-  if(passageSpawnGuard>0)passageSpawnGuard-=dt;
-  for(let o of obs){
-    const t=Math.max(0,Math.min(1,o.z));
-    const accel=.9+.22*t+.04*t*t;
-    o.z+=o.spd*s*accel;
-  }
+  for(let o of obs)o.z+=o.spd*s;
   obs=obs.filter(o=>o.z<1.15);
   if(inv>0)return;
   
   const isJump=jOff()>.06;
-  const pSec=playerSectorVisual;
-  const collisionAngle=pAng;
+  const pSec=getSector(pAng);
   
   for(let o of obs){
     if(o.passed)continue;
     const back=o.z+(o.depth||.05);
+    // Past player?
     if(o.z>CFG.playerZ+.01){o.passed=true;continue}
+    // In range?
     if(!(o.z<=CFG.playerZ+.005&&back>=CFG.playerZ-.005))continue;
     
     if(o.type==='ring'){
@@ -585,21 +426,20 @@ function updateObs(dt){
     }
     if(o.type==='block'){
       if(o.sectors&&o.sectors.includes(pSec)){
-        let ad=Math.abs(collisionAngle-o.angle);
+        let ad=Math.abs(pAng-o.angle);
         ad=Math.min(ad,Math.PI*2-ad);
-        const halfArc=Math.max(0,o.arcSize/2-.035);
-        if(ad<halfArc){
+        if(ad<o.arcSize/2-.08){
           o.passed=true;die();return;
         }
       }
       if(back>CFG.playerZ)o.passed=true;
     }
     if(o.type==='ring_segment'){
+      // Blue segment: can be jumped over, kills if not jumping and in this sector
       if(o.sectors&&o.sectors.includes(pSec)){
-        let ad=Math.abs(collisionAngle-o.angle);
+        let ad=Math.abs(pAng-o.angle);
         ad=Math.min(ad,Math.PI*2-ad);
-        const halfArc=Math.max(0,o.arcSize/2-.035);
-        if(ad<halfArc){
+        if(ad<o.arcSize/2-.08){
           if(isJump){o.passed=true;continue}
           o.passed=true;die();return;
         }
@@ -612,52 +452,27 @@ function updateObs(dt){
 // (drawObs replaced by drawScene/drawSingleObs above)
 
 // ==================== COINS ====================
-function getBlockedSectorsAtZ(z){
-  const blocked=new Set();
-  for(const o of obs){
-    if(o.passed||!o.sectors)continue;
-    const back=o.z+(o.depth||.05);
-    if(o.z<=z+.02&&back>=z-.02){
-      for(const s of o.sectors)blocked.add(s);
-    }
-  }
-  return blocked;
-}
-
-function isCoinPathSafe(angle,zStart,zStep,count){
-  const sector=getSector(angle);
-  for(let i=0;i<count;i++){
-    const z=zStart-zStep*i;
-    const blocked=getBlockedSectorsAtZ(z);
-    if(blocked.has(sector))return false;
-  }
-  return true;
-}
-
 function spawnCoins(){
+  // Keep coin moments readable, avoid clutter during obstacle-heavy sections
   const activeCoinCount=cns.filter(c=>!c.collected&&!c.missed&&c.z<CFG.playerZ).length;
   if(activeCoinCount>0||coinModeTimer>0)return;
 
+  // Reintroduce a gentle spiral, but only if the current near field is clean
   const nearObs=obs.filter(o=>o.z<.7);
   if(nearObs.length>0)return;
 
   const safeSector=getSector(pAng);
   const safeAngle=safeSector*SECTOR_SIZE+SECTOR_SIZE/2;
-  const start=safeAngle+(Math.random()<.5?-1:1)*.03;
-  const turns=.2+Math.random()*.04;
+  const start=safeAngle+(Math.random()<.5?-1:1)*.035;
+  const turns=.28+Math.random()*.06;
   const dir=Math.random()<.5?1:-1;
-  const n=16;
+  const n=18;
   for(let i=0;i<n;i++){
     const t=i/(n-1);
     const angle=start+dir*(turns*Math.PI*2)*t;
-    const z=-.05-.06*i;
-    const sector=getSector(angle);
-    const blocked=getBlockedSectorsAtZ(z);
-    if(blocked.has(sector))continue;
-    if(!isCoinPathSafe(angle,z,.06,2))continue;
     cns.push({
       angle,
-      z,
+      z:-.05-.06*i,
       collected:false
     });
   }
@@ -665,13 +480,17 @@ function spawnCoins(){
 }
 
 function spawnCoinsInGap(blockedSectors){
+  // Place a neat line of coins centered in the free gap
   const freeSectors=[];
   for(let i=0;i<SECTORS;i++){
     if(!blockedSectors.includes(i))freeSectors.push(i);
   }
   if(freeSectors.length===0)return;
   
+  // Find the largest contiguous free gap
   let bestStart=-1,bestLen=0,curStart=0,curLen=0;
+  // Check all sectors including wrap-around
+  const ext=[...freeSectors];
   for(let i=0;i<SECTORS;i++){
     if(freeSectors.includes(i)){
       if(curLen===0)curStart=i;
@@ -684,18 +503,15 @@ function spawnCoinsInGap(blockedSectors){
   
   if(bestStart<0)return;
   
-  const gapSector=((bestStart+Math.floor(bestLen/2))%SECTORS+SECTORS)%SECTORS;
-  const gapCenter=gapSector*SECTOR_SIZE+SECTOR_SIZE/2;
+  // Center of the gap
+  const gapCenter=(bestStart+bestLen/2)*SECTOR_SIZE+SECTOR_SIZE/2;
   
-  const n=3;
-  if(!isCoinPathSafe(gapCenter,-.02,.04,n))return;
+  // Place 3-5 coins in a straight line along the gap, evenly spaced in depth
+  const n=3; // cleaner reward line in the safe gap
   for(let i=0;i<n;i++){
-    const z=-.02-.04*i;
-    const blocked=getBlockedSectorsAtZ(z);
-    if(blocked.has(gapSector))continue;
     cns.push({
-      angle:gapCenter,
-      z,
+      angle:gapCenter, // all at the same angle = neat line
+      z:-.02-.04*i, // spread further apart in depth
       collected:false
     });
   }
@@ -720,12 +536,9 @@ function updateCoins(dt){
 
     const dz=Math.abs(c.z-CFG.playerZ);
     let ad=Math.abs(pAng-c.angle);ad=Math.min(ad,Math.PI*2-ad);
-    const sectorDelta=Math.abs(getSector(c.angle)-playerSectorVisual);
-    const wrappedSectorDelta=Math.min(sectorDelta,SECTORS-sectorDelta);
-    const nearSector=wrappedSectorDelta<=1;
 
-    if(coinCollectCooldown<=0&&nearSector&&dz<.04&&ad<.18){
-      const score=dz*2.2+ad+(wrappedSectorDelta*.03);
+    if(coinCollectCooldown<=0&&dz<.022&&ad<.11){
+      const score=dz*3+ad;
       if(score<bestScore){bestScore=score;bestCoin=c}
     }
 
@@ -741,7 +554,7 @@ function updateCoins(dt){
     bestCoin.collected=true;
     sc+=100;coinCount++;spawnParts(bestCoin.angle,bestCoin.z);
     const cr=z2r(bestCoin.z);
-    addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+1 COIN','#ffdd00');
+    addFloat(CX+Math.cos(bestCoin.angle)*cr,CY+Math.sin(bestCoin.angle)*cr,'+100','#ffdd00');
     coinCollectCooldown=3;
   }
 }
@@ -751,7 +564,7 @@ function updateCoins(dt){
 // ==================== FLOATING TEXTS (for coin feedback) ====================
 let floatTexts=[];
 function addFloat(x,y,text,color){floatTexts.push({x,y,text,color,life:1,vy:-2.5})}
-function updateFloats(dt){for(let f of floatTexts){f.y+=f.vy*dt;f.life-=.015*dt}floatTexts=floatTexts.filter(f=>f.life>0)}
+function updateFloats(dt){for(let f of floatTexts){f.y+=f.vy*dt;f.life-=.025*dt}floatTexts=floatTexts.filter(f=>f.life>0)}
 function drawFloats(){
   cx.textAlign='center';cx.textBaseline='middle';
   for(let f of floatTexts){
@@ -783,20 +596,12 @@ function updateHint(dt){if(hintTimer>0){hintTimer-=dt;if(hintTimer<=0)hintEl.cla
 // ==================== GAME FLOW ====================
 function die(){lives--;if(lives<=0)endGame();else inv=90}
 const ov=document.getElementById('ov');
-const startBtn=document.getElementById('go');
-function bindStartButton(){
-  if(!startBtn)return;
-  startBtn.onclick=startGame;
-  startBtn.addEventListener('click',startGame);
-  startBtn.addEventListener('touchstart',e=>{e.preventDefault();startGame()},{passive:false});
-  startBtn.addEventListener('pointerdown',e=>{e.preventDefault();startGame()});
-}
-bindStartButton();
+document.getElementById('go').addEventListener('click',startGame);
 
 function startGame(){
   run=true;over=false;paused=false;sc=0;lives=1;spd=1;dist=0;inv=0;fc=0;coinCount=0;
-  pAng=Math.PI/2;sAng=Math.PI/2;playerSectorVisual=getSector(Math.PI/2+SECTOR_SIZE*.5);jumping=false;jf=0;wspin=0;
-  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;passageSpawnGuard=0;
+  pAng=Math.PI/2;sAng=Math.PI/2;jumping=false;jf=0;wspin=0;
+  obs=[];cns=[];parts=[];spT=0;cnT=0;sparks=[];lastMilestone=0;spawnPhase=0;coinModeTimer=0;coinCollectCooldown=0;
   initBands();
   document.getElementById('whl').style.transform='rotate(0deg)';
   ov.classList.add('hidden');updHUD();
@@ -827,9 +632,9 @@ function togglePause(){
 }
 
 function updHUD(){
-  document.getElementById('sc').textContent=`Record: ${hi.toLocaleString()}`;
-  document.getElementById('rc').textContent=sc.toLocaleString();
-  document.getElementById('hrt').textContent='🟡 '+coinCount;
+  document.getElementById('sc').textContent=sc.toLocaleString();
+  document.getElementById('rc').textContent=`Record: ${hi.toLocaleString()}`;
+  document.getElementById('hrt').textContent='🪙 '+coinCount;
   // Position indicator on steering wheel - matches tunnel angle
   const posEl=document.getElementById('posInd');
   if(posEl){
@@ -937,7 +742,6 @@ function drawSingleObs(o){
   const rf=z2r(o.z);
   const rb=z2r(Math.min(1.1,o.z+zDepth));
   const thickness=rb-rf;
-  const frontWeight=Math.max(1,thickness*.1);
   
   if(rf<10||thickness<2)return;
   const fade=o.passed?Math.max(0,1-(o.z-CFG.playerZ)*4):1;
@@ -974,86 +778,85 @@ function drawSingleObs(o){
   
   if(o.type==='block'){
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
-    const midA=(sa+ea)/2;
-    const outerFront=rb;
-    const innerFront=Math.max(rf+thickness*.18, rb-thickness*.58);
-    const outerBack=Math.max(innerFront+1, rb-thickness*.24);
-    const bevel=Math.min(.045, o.arcSize*.16);
-
-    // back body
+    
+    // === MASSIVE 3D BLOCK ===
+    // Layer 1: BACK FACE (darkest, the far side disappearing into tunnel)
+    const backThick=Math.max(2,thickness*.12);
     cx.beginPath();
-    cx.arc(CX,CY,outerBack,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
-    cx.fillStyle='#6e3016';cx.fill();
-
-    // front face, brighter and flatter like inserted wedge block
-    cx.beginPath();
-    cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.arc(CX,CY,innerFront,ea-bevel,sa+bevel,true);
-    cx.closePath();
-    cx.fillStyle='#c87445';cx.fill();
-
-    // darker side bevel strips
-    for(const pair of [[sa,sa+bevel],[ea-bevel,ea]]){
-      cx.beginPath();
-      cx.arc(CX,CY,outerFront,pair[0],pair[1]);
-      cx.arc(CX,CY,rf,pair[1],pair[0],true);
-      cx.closePath();
-      cx.fillStyle='#8c4322';cx.fill();
+    cx.arc(CX,CY,rf+backThick,sa,ea);cx.arc(CX,CY,Math.max(rf-1,0),ea,sa,true);cx.closePath();
+    cx.fillStyle='#2a1005';cx.fill();
+    
+    // Layer 2: BODY — three bands for depth gradient
+    // Dark back third
+    const t1=rf+thickness*.33, t2=rf+thickness*.66;
+    cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,rf,ea,sa,true);cx.closePath();
+    cx.fillStyle='#6a2a10';cx.fill();
+    // Medium middle third
+    cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
+    cx.fillStyle='#8a3c18';cx.fill();
+    // Bright front third
+    cx.beginPath();cx.arc(CX,CY,rb,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
+    cx.fillStyle='#b85828';cx.fill();
+    
+    // Layer 3: FRONT FACE — bright thick edge (the wall you'd crash into)
+    cx.beginPath();cx.arc(CX,CY,rb,sa-.003,ea+.003);
+    cx.strokeStyle='#dd8844';cx.lineWidth=Math.max(3,thickness*.1);cx.stroke();
+    
+    // Layer 4: BACK EDGE — dark
+    cx.beginPath();cx.arc(CX,CY,rf,sa-.003,ea+.003);
+    cx.strokeStyle='#2a1005';cx.lineWidth=Math.max(2,thickness*.06);cx.stroke();
+    
+    // Layer 5: SIDE WALLS (visible edges of the block)
+    // Skip side-wall emphasis for wide merged segments, otherwise seams stay visible
+    if((o.sectors?.length||1)===1){
+      for(const edgeA of[sa,ea]){
+        const x1=CX+Math.cos(edgeA)*rf,y1=CY+Math.sin(edgeA)*rf;
+        const x2=CX+Math.cos(edgeA)*rb,y2=CY+Math.sin(edgeA)*rb;
+        // Dark side fill
+        cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);
+        cx.strokeStyle='#5a2510';cx.lineWidth=Math.max(3,thickness*.08);cx.stroke();
+        // Bright edge highlight at front corner
+        const mx=x1*.3+x2*.7, my=y1*.3+y2*.7;
+        cx.beginPath();cx.moveTo(mx,my);cx.lineTo(x2,y2);
+        cx.strokeStyle='#c06830';cx.lineWidth=Math.max(2,thickness*.05);cx.stroke();
+      }
     }
-
-    // front outline softer and more realistic, less neon-like
-    cx.beginPath();cx.arc(CX,CY,outerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(225,165,115,.45)';cx.lineWidth=Math.max(1.1,thickness*.035);cx.stroke();
-
-    // outer shadow lip so the outside edge feels thicker and less flat
-    cx.beginPath();cx.arc(CX,CY,outerFront-frontWeight*.95,sa+bevel*.95,ea-bevel*.95);
-    cx.strokeStyle='rgba(88,38,18,.18)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
-
-    // inner front shadow to separate face from body
-    cx.beginPath();cx.arc(CX,CY,innerFront,sa+bevel,ea-bevel);
-    cx.strokeStyle='rgba(80,30,12,.28)';cx.lineWidth=Math.max(1,thickness*.024);cx.stroke();
-
-    // subtle center plane highlight like the original chunky pieces
-    cx.beginPath();cx.arc(CX,CY,(outerFront+innerFront)*.5,sa+bevel*1.2,ea-bevel*1.2);
-    cx.strokeStyle='rgba(255,220,180,.06)';cx.lineWidth=Math.max(1,thickness*.016);cx.stroke();
-
-    // remove hard radial seams almost completely, keep only a very soft corner suggestion
-    for(const edgeA of[sa,ea]){
-      const ex=CX+Math.cos(edgeA)*(outerFront-frontWeight*.5);
-      const ey=CY+Math.sin(edgeA)*(outerFront-frontWeight*.5);
-      const ex2=CX+Math.cos(edgeA)*(outerFront-frontWeight*.08);
-      const ey2=CY+Math.sin(edgeA)*(outerFront-frontWeight*.08);
-      cx.beginPath();cx.moveTo(ex,ey);cx.lineTo(ex2,ey2);
-      cx.strokeStyle='rgba(70,30,14,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
-    }
-
-    // tiny perspective notch so it reads more as a wedge than a painted ring slice
-    const nx1=CX+Math.cos(midA)*(innerFront+thickness*.05);
-    const ny1=CY+Math.sin(midA)*(innerFront+thickness*.05);
-    const nx2=CX+Math.cos(midA)*(outerFront-thickness*.08);
-    const ny2=CY+Math.sin(midA)*(outerFront-thickness*.08);
-    cx.beginPath();cx.moveTo(nx1,ny1);cx.lineTo(nx2,ny2);
-    cx.strokeStyle='rgba(120,55,24,.08)';cx.lineWidth=Math.max(1,thickness*.014);cx.stroke();
+    
+    // Layer 6: Surface detail lines for panel look
+    cx.beginPath();cx.arc(CX,CY,t1,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.4)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    cx.beginPath();cx.arc(CX,CY,t2,sa+.01,ea-.01);
+    cx.strokeStyle='rgba(40,18,5,.3)';cx.lineWidth=Math.max(1,thickness*.03);cx.stroke();
+    
+    // Layer 7: Front highlight for 3D pop
+    cx.beginPath();cx.arc(CX,CY,rb-Math.max(2,thickness*.06),sa+.01,ea-.01);
+    cx.strokeStyle='rgba(240,160,80,.2)';cx.lineWidth=Math.max(1,thickness*.04);cx.stroke();
   }
   
   if(o.type==='ring_segment'){
+    // Blue jumpable segment — keep thickness, shift outward so its outer edge matches brown
     const sa=o.angle-o.arcSize/2,ea=o.angle+o.arcSize/2;
     const blueThickness=thickness*.72;
     const blueOuter=rb;
     const blueInner=rb-blueThickness;
     const t1=blueOuter-blueThickness*.33, t2=blueOuter-blueThickness*.66;
+    // Back / inner face
     cx.beginPath();cx.arc(CX,CY,blueInner+1,sa,ea);cx.arc(CX,CY,Math.max(blueInner-1,0),ea,sa,true);cx.closePath();
     cx.fillStyle='#043848';cx.fill();
+    // Body layers from outer edge inward
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa,ea);cx.arc(CX,CY,t1,ea,sa,true);cx.closePath();
     cx.fillStyle='#0bbccc';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t1,sa,ea);cx.arc(CX,CY,t2,ea,sa,true);cx.closePath();
     cx.fillStyle='#088898';cx.fill();
     cx.beginPath();cx.arc(CX,CY,t2,sa,ea);cx.arc(CX,CY,blueInner,ea,sa,true);cx.closePath();
     cx.fillStyle='#055868';cx.fill();
+    // Outer/front edge aligned with brown underside
     cx.beginPath();cx.arc(CX,CY,blueOuter,sa-.004,ea+.004);
     cx.strokeStyle='#44eeff';cx.lineWidth=Math.max(2.5,thickness*.06);cx.stroke();
+    // Inner/top edge moved outward, but thickness preserved
     cx.beginPath();cx.arc(CX,CY,blueInner,sa+.001,ea-.001);
     cx.strokeStyle='#033848';cx.lineWidth=Math.max(1.5,thickness*.04);cx.stroke();
+    // Sides
     for(const edgeA of[sa,ea]){
       cx.beginPath();cx.moveTo(CX+Math.cos(edgeA)*blueInner,CY+Math.sin(edgeA)*blueInner);cx.lineTo(CX+Math.cos(edgeA)*blueOuter,CY+Math.sin(edgeA)*blueOuter);
       cx.strokeStyle='#066878';cx.lineWidth=Math.max(3,thickness*.07);cx.stroke();
@@ -1065,8 +868,8 @@ function drawSingleObs(o){
 function drawSingleCoin(c){
   if(c.collected)return;
   const r=z2r(c.z);
-  const scale=zScale(c.z);
-  const sz=2+scale*20;
+  // Perspective-correct size matching z2r curve
+  const sz=2+Math.pow(Math.max(0,c.z),1.8)*20;
   const x=CX+Math.cos(c.angle)*r,y=CY+Math.sin(c.angle)*r;
   
   if(c.missed){
