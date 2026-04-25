@@ -134,7 +134,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
+	if what == Node.NOTIFICATION_RESIZED:
 		_layout_controls()
 
 func _update_input(delta: float) -> void:
