@@ -160,8 +160,8 @@ func _jump_offset() -> float:
 	return sin((jump_timer / JUMP_DURATION) * PI) * JUMP_HEIGHT
 
 func _spawn_group() -> void:
-	var difficulty := min(1.0, run_distance / 40.0)
-	var safe_sector := _sector_for_angle(player_angle)
+	var difficulty: float = min(1.0, run_distance / 40.0)
+	var safe_sector: int = _sector_for_angle(player_angle)
 	var blocked: Array[int] = []
 	match spawn_phase % 4:
 		0:
@@ -198,7 +198,7 @@ func _make_jump_gate_pattern(safe_sector: int) -> Array[int]:
 func _spawn_coin_line() -> void:
 	if not game_running:
 		return
-	var sector := _sector_for_angle(player_angle)
+	var sector: int = _sector_for_angle(player_angle)
 	for i in range(4):
 		coins.append({
 			"sector": sector,
@@ -235,9 +235,9 @@ func _update_coins(delta: float) -> void:
 	coins = next
 
 func _spawn_pickup_particles(angle: float, z: float) -> void:
-	var center := _screen_center()
-	var radius := _radius_for_z(z)
-	var pos := center + Vector2(cos(angle), sin(angle)) * radius
+	var center: Vector2 = _screen_center()
+	var radius: float = _radius_for_z(z)
+	var pos: Vector2 = center + Vector2(cos(angle), sin(angle)) * radius
 	for i in range(6):
 		particles.append({
 			"pos": pos,
