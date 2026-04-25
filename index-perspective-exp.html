@@ -119,14 +119,30 @@ let passageSpawnGuard=0;
 // This makes collision grid-based and 100% predictable
 const SECTORS=8;
 const SECTOR_SIZE=Math.PI*2/SECTORS;
+const ALL_SECTORS=Array.from({length:SECTORS},(_,i)=>i);
 
 function getSector(angle){
   let a=((angle%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
   return Math.floor(a/SECTOR_SIZE);
 }
 
+const PERSPECTIVE_DEPTH_NEAR=1;
+const PERSPECTIVE_DEPTH_FAR=OR/IR;
+const PERSPECTIVE_DEPTH_SPAN=PERSPECTIVE_DEPTH_FAR-PERSPECTIVE_DEPTH_NEAR;
+const PERSPECTIVE_FALLOFF=1.5;
+
+function projectDepth(z){
+  const clamped=Math.max(0,Math.min(1,z));
+  const depthT=Math.pow(1-clamped,PERSPECTIVE_FALLOFF);
+  return PERSPECTIVE_DEPTH_NEAR+PERSPECTIVE_DEPTH_SPAN*depthT;
+}
+
+function zScale(z){
+  return PERSPECTIVE_DEPTH_NEAR/projectDepth(z);
+}
+
 function z2r(z){
-  return IR+(OR-IR)*Math.pow(Math.max(0,z),1.8);
+  return OR*zScale(z);
 }
 
 // ==================== TUNNEL ====================
@@ -229,7 +245,7 @@ function jOff(){return jumping?Math.sin((jf/CFG.jumpDur)*Math.PI)*CFG.jumpHeight
 function pPos(){const jo=jOff(),r=z2r(CFG.playerZ-jo);return{x:CX+Math.cos(pAng)*r,y:CY+Math.sin(pAng)*r,r}}
 
 function drawPlayer(){
-  const p=pPos(),sz=18+CFG.playerZ*8;
+  const p=pPos(),playerScale=zScale(CFG.playerZ-jOff()),sz=12+playerScale*24;
   const shadowR=z2r(CFG.playerZ);
   const shadowX=CX+Math.cos(pAng)*shadowR;
   const shadowY=CY+Math.sin(pAng)*shadowR;
@@ -339,6 +355,44 @@ function doJump(){if(!jumping&&run){jumping=true;jf=0}}
 // ==================== OBSTACLES ====================
 let lastCoinSpawnZ=0;
 
+function sectorListWithout(blocked){
+  const blockedSet=new Set(blocked);
+  return ALL_SECTORS.filter(s=>!blockedSet.has(s));
+}
+
+function getObstacleProfile(o){
+  if(o.type==='block')return{start:o.z,end:o.z+(o.depth||.08),safeSectors:sectorListWithout(o.sectors||[])};
+  if(o.type==='ring_segment')return{start:o.z,end:o.z+(o.depth||.08),safeSectors:[...(o.sectors||[])]};
+  if(o.type==='ring')return{start:o.z,end:o.z+(o.depth||.07),safeSectors:[...ALL_SECTORS]};
+  return null;
+}
+
+function canPlaceProfiles(profiles){
+  const existing=obs.map(getObstacleProfile).filter(Boolean);
+  const overlapBuffer=.05;
+  for(const candidate of profiles){
+    let shared=[...candidate.safeSectors];
+    for(const current of existing){
+      if(current.end+overlapBuffer<=candidate.start||current.start>=candidate.end+overlapBuffer)continue;
+      shared=shared.filter(s=>current.safeSectors.includes(s));
+      if(shared.length===0)return false;
+    }
+  }
+  return true;
+}
+
+function trySpawn(generator, attempts=20){
+  for(let i=0;i<attempts;i++){
+    const candidate=generator();
+    if(!candidate)continue;
+    if(canPlaceProfiles(candidate.profiles)){
+      candidate.commit();
+      return candidate.result;
+    }
+  }
+  return null;
+}
+
 function spawnGroup(){
   const diff=Math.min(1,dist/5000);
   const phase=spawnPhase%7;
@@ -348,15 +402,17 @@ function spawnGroup(){
 
   if(diff>.28&&laneBlockCooldown<=0&&(phase===2||phase===5)&&Math.random()<.65){
     const blocked=spawnLaneBlockPassage(diff);
-    laneBlockCooldown=5;
-    passageSpawnGuard=7;
-    if(Math.random()<.8)spawnCoinsInGap(blocked);
-    return;
+    if(blocked){
+      laneBlockCooldown=5;
+      passageSpawnGuard=7;
+      if(Math.random()<.8)spawnCoinsInGap(blocked);
+      return;
+    }
   }
 
   if(phase===0){
     const blocked=spawnBlockSet(diff*.85);
-    if(Math.random()<.75)spawnCoinsInGap(blocked);
+    if(blocked&&Math.random()<.75)spawnCoinsInGap(blocked);
     return;
   }
   if(phase===1){
@@ -364,23 +420,23 @@ function spawnGroup(){
       spawnRingObs();
     } else {
       const blocked=spawnBlockSet(diff*.9);
-      if(Math.random()<.5)spawnCoinsInGap(blocked);
+      if(blocked&&Math.random()<.5)spawnCoinsInGap(blocked);
     }
     return;
   }
   if(phase===2){
     const blocked=spawnBlockSet(diff);
-    if(Math.random()<.35)spawnCoinsInGap(blocked);
+    if(blocked&&Math.random()<.35)spawnCoinsInGap(blocked);
     return;
   }
   if(phase===3){
     if(diff>.22){
-      spawnComboRing(diff);
+      if(!spawnComboRing(diff)&&passageSpawnGuard<=0)spawnRingObs();
     } else if(passageSpawnGuard<=0){
       spawnRingObs();
     } else {
       const blocked=spawnBlockSet(diff*.82);
-      if(Math.random()<.45)spawnCoinsInGap(blocked);
+      if(blocked&&Math.random()<.45)spawnCoinsInGap(blocked);
     }
     return;
   }
@@ -390,7 +446,7 @@ function spawnGroup(){
   }
   if(phase===5){
     const blocked=spawnBlockSet(diff*.95);
-    if(Math.random()<.55)spawnCoinsInGap(blocked);
+    if(blocked&&Math.random()<.55)spawnCoinsInGap(blocked);
     return;
   }
 
@@ -398,15 +454,21 @@ function spawnGroup(){
 }
 
 function spawnBlockSet(diff){
-  const minBlock=1,maxBlock=Math.floor(1+diff*5);
-  const numBlock=minBlock+Math.floor(Math.random()*(maxBlock-minBlock+1));
-  const pSec=getSector(pAng);
-  let available=[];
-  for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
-  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-  const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
-  pushMergedBlocks(blocked,.09+Math.random()*.04);
-  return blocked;
+  return trySpawn(()=>{
+    const minBlock=1,maxBlock=Math.floor(1+diff*5);
+    const numBlock=minBlock+Math.floor(Math.random()*(maxBlock-minBlock+1));
+    const pSec=getSector(pAng);
+    let available=[];
+    for(let i=0;i<SECTORS;i++)if(i!==pSec&&i!==(pSec+1)%SECTORS&&i!==(pSec+SECTORS-1)%SECTORS)available.push(i);
+    for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
+    const blocked=available.slice(0,Math.min(numBlock,available.length)).sort((a,b)=>a-b);
+    const depth=.09+Math.random()*.04;
+    return{
+      profiles:[{start:0,end:depth,safeSectors:sectorListWithout(blocked)}],
+      commit:()=>pushMergedBlocks(blocked,depth),
+      result:blocked
+    };
+  });
 }
 
 function spawnRingObs(){
@@ -414,20 +476,30 @@ function spawnRingObs(){
 }
 
 function spawnLaneBlockPassage(diff){
-  const width=diff>.7?Math.random()<.55?4:3:3;
-  const span=3+Math.floor(diff*3);
-  const gapSize=Math.max(1,SECTORS-width);
-  const playerSector=getSector(pAng);
-  let start=(playerSector+2+Math.floor(Math.random()*3))%SECTORS;
-  const blocked=[];
-  for(let i=0;i<width;i++)blocked.push((start+i)%SECTORS);
-
-  for(let i=0;i<span;i++){
-    const zOffset=-(i*.11);
-    const depth=.1+Math.random()*.025;
-    pushMergedBlocks(blocked,depth,zOffset);
-  }
-  return blocked.sort((a,b)=>a-b);
+  return trySpawn(()=>{
+    const width=diff>.7?(Math.random()<.55?4:3):3;
+    const span=3+Math.floor(diff*3);
+    const playerSector=getSector(pAng);
+    let start=(playerSector+2+Math.floor(Math.random()*3))%SECTORS;
+    const blocked=[];
+    for(let i=0;i<width;i++)blocked.push((start+i)%SECTORS);
+    const blockedSorted=blocked.sort((a,b)=>a-b);
+    const profiles=[];
+    const segments=[];
+    for(let i=0;i<span;i++){
+      const zOffset=-(i*.11);
+      const depth=.1+Math.random()*.025;
+      segments.push({depth,zOffset});
+      profiles.push({start:zOffset,end:zOffset+depth,safeSectors:sectorListWithout(blockedSorted)});
+    }
+    return{
+      profiles,
+      commit:()=>{
+        for(const segment of segments)pushMergedBlocks(blockedSorted,segment.depth,segment.zOffset);
+      },
+      result:blockedSorted
+    };
+  });
 }
 
 function pushMergedBlocks(sectors, depth=.08, zOffset=0){
@@ -464,20 +536,26 @@ function pushMergedBlocks(sectors, depth=.08, zOffset=0){
 
 function spawnComboRing(diff){
   // Full ring: mostly brown (dodge), 1-2 sectors blue (jumpable)
-  const numBlue=diff>.6?1:1+Math.floor(Math.random()*2);
-  let all=[];for(let i=0;i<SECTORS;i++)all.push(i);
-  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
-  const blue=all.slice(0,numBlue);
-  const brown=[];
-  for(let i=0;i<SECTORS;i++){
-    const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
-    if(blue.includes(i)){
-      obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
-    } else {
-      brown.push(i);
-    }
-  }
-  pushMergedBlocks(brown,.08);
+  return trySpawn(()=>{
+    const numBlue=diff>.6?1:1+Math.floor(Math.random()*2);
+    let all=[...ALL_SECTORS];for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]]}
+    const blue=all.slice(0,numBlue).sort((a,b)=>a-b);
+    const brown=ALL_SECTORS.filter(i=>!blue.includes(i));
+    const depth=.08;
+    return{
+      profiles:[{start:0,end:depth,safeSectors:[...blue]}],
+      commit:()=>{
+        for(let i=0;i<SECTORS;i++){
+          const angle=i*SECTOR_SIZE+SECTOR_SIZE/2;
+          if(blue.includes(i)){
+            obs.push({type:'ring_segment',angle,arcSize:SECTOR_SIZE,z:0,depth:.08,spd:CFG.obsSpeed,passed:false,sectors:[i]});
+          }
+        }
+        pushMergedBlocks(brown,.08);
+      },
+      result:blue
+    };
+  });
 }
 
 function updateObs(dt){
@@ -987,8 +1065,8 @@ function drawSingleObs(o){
 function drawSingleCoin(c){
   if(c.collected)return;
   const r=z2r(c.z);
-  // Perspective-correct size matching z2r curve
-  const sz=2+Math.pow(Math.max(0,c.z),1.8)*20;
+  const scale=zScale(c.z);
+  const sz=2+scale*20;
   const x=CX+Math.cos(c.angle)*r,y=CY+Math.sin(c.angle)*r;
   
   if(c.missed){
