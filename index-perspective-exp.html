@@ -1042,11 +1042,13 @@ function drawForegroundRim(){
   const lipInner=OR-14;
 
   cx.save();
-  cx.beginPath();
-  cx.rect(0,0,W,H);
-  cx.arc(CX,CY,outerMask,0,Math.PI*2,true);
   cx.fillStyle='rgba(2,6,12,.98)';
-  cx.fill('evenodd');
+  cx.fillRect(0,0,W,H);
+  cx.globalCompositeOperation='destination-out';
+  cx.beginPath();
+  cx.arc(CX,CY,outerMask,0,Math.PI*2);
+  cx.fill();
+  cx.globalCompositeOperation='source-over';
 
   const lip=cx.createRadialGradient(CX,CY,lipInner,CX,CY,lipOuter);
   lip.addColorStop(0,`hsla(${tunnelHue},45%,18%,0)`);
